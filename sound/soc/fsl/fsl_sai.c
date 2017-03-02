@@ -303,7 +303,6 @@ static int fsl_sai_set_dai_fmt_tr(struct snd_soc_dai *cpu_dai,
 static int fsl_sai_set_dai_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 {
 	int ret;
-
 	ret = fsl_sai_set_dai_fmt_tr(cpu_dai, fmt, FSL_FMT_TRANSMITTER);
 	if (ret) {
 		dev_err(cpu_dai->dev, "Cannot set tx format: %d\n", ret);
@@ -418,7 +417,6 @@ static int fsl_sai_hw_params(struct snd_pcm_substream *substream,
 		slot_width = sai->slot_width;
 		ret = fsl_sai_set_bclk(cpu_dai, tx,
 				sai->slots * slot_width * params_rate(params));
-
 		if (ret)
 			return ret;
 
@@ -490,10 +488,10 @@ static int fsl_sai_hw_free(struct snd_pcm_substream *substream,
 {
 	struct fsl_sai *sai = snd_soc_dai_get_drvdata(cpu_dai);
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-
+	return 0;
 	if (!sai->is_slave_mode &&
 			sai->mclk_streams & BIT(substream->stream)) {
-		clk_disable_unprepare(sai->mclk_clk[sai->mclk_id[tx]]);
+		//clk_disable_unprepare(sai->mclk_clk[sai->mclk_id[tx]]);
 		sai->mclk_streams &= ~BIT(substream->stream);
 	}
 
@@ -509,7 +507,6 @@ static int fsl_sai_trigger(struct snd_pcm_substream *substream, int cmd,
 	u8 channels = substream->runtime->channels;
 	u32 xcsr, count = 100;
 	int i;
-
 	/*
 	 * Asynchronous mode: Clear SYNC for both Tx and Rx.
 	 * Rx sync with Tx clocks: Clear SYNC for Tx, set it for Rx.
@@ -519,7 +516,6 @@ static int fsl_sai_trigger(struct snd_pcm_substream *substream, int cmd,
 		           sai->synchronous[TX] ? FSL_SAI_CR2_SYNC : 0);
 	regmap_update_bits(sai->regmap, FSL_SAI_RCR2, FSL_SAI_CR2_SYNC,
 			   sai->synchronous[RX] ? FSL_SAI_CR2_SYNC : 0);
-
 	/*
 	 * It is recommended that the transmitter is the last enabled
 	 * and the first disabled.
@@ -594,19 +590,13 @@ static int fsl_sai_startup(struct snd_pcm_substream *substream,
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 	struct device *dev = &sai->pdev->dev;
 	int ret;
-
+	
 	if (sai->is_stream_opened[tx])
 		return -EBUSY;
 	else
 		sai->is_stream_opened[tx] = true;
 
 	pm_runtime_get_sync(cpu_dai->dev);
-
-	ret = clk_prepare_enable(sai->bus_clk);
-	if (ret) {
-		dev_err(dev, "failed to enable bus clock: %d\n", ret);
-		return ret;
-	}
 
 	regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx), FSL_SAI_CR3_TRCE,
 			   FSL_SAI_CR3_TRCE);
@@ -625,7 +615,7 @@ static void fsl_sai_shutdown(struct snd_pcm_substream *substream,
 
 	if (sai->is_stream_opened[tx]) {
 		regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx), FSL_SAI_CR3_TRCE, 0);
-		clk_disable_unprepare(sai->bus_clk);
+		//clk_disable_unprepare(sai->bus_clk);
 		sai->is_stream_opened[tx] = false;
 		pm_runtime_put_sync(cpu_dai->dev);
 	}
@@ -662,6 +652,21 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 				&sai->dma_params_rx);
 
 	snd_soc_dai_set_drvdata(cpu_dai, sai);
+	
+	int ret;
+	if (!sai->is_slave_mode) {
+		ret = fsl_sai_set_bclk(cpu_dai, 1,2 * 32 * 44100);
+		if (ret)
+			return ret;
+
+		/* Do not enable the clock if it is already enabled */
+		if (!(sai->mclk_streams & BIT(SNDRV_PCM_STREAM_PLAYBACK))) {
+			ret = clk_prepare_enable(sai->mclk_clk[sai->mclk_id[1]]);
+			if (ret)
+				return ret;
+			sai->mclk_streams |= BIT(SNDRV_PCM_STREAM_PLAYBACK);
+		}
+	}
 
 	return 0;
 }
@@ -843,6 +848,10 @@ static int fsl_sai_probe(struct platform_device *pdev)
 		}
 	}
 
+	if (clk_prepare_enable(sai->bus_clk)) {
+		printk( "failed to enable bus clock \n");
+	}
+	
 	sai->slots = 2;
 	sai->slot_width = 32;
 
