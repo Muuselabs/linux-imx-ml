@@ -97,6 +97,37 @@ static const struct snd_soc_dapm_route audio_map[] = {
 //     { "RINN", NULL, "Mic In" },  
 };
 
+
+static void imx_adau1761_amp_enable(struct imx_adau1761_data *data, int en)
+{
+	struct gpio_desc *amp_mute = data->gpios[0]; 
+	struct gpio_desc *amp_sd = data->gpios[1]; 
+	struct gpio_desc *boosten = data->gpios[2]; 
+    
+	if(en) {
+		ADAU_DBG("turn on amp\n");        
+		// enable boost converter and un-mute amp
+		gpiod_set_value(boosten, 1);
+
+		// sleep until the supply is ready
+		mdelay(5);
+        
+		// enable the amplifier
+		gpiod_set_value(amp_sd, 0);
+		mdelay(400);
+        
+		gpiod_set_value(amp_mute, 1);
+	} else {
+		ADAU_DBG("turn off amp\n");        
+		// mute amp and disable boost converter
+		gpiod_set_value(amp_mute, 0);
+		mdelay(1);
+		gpiod_set_value(amp_sd, 1);
+		mdelay(1);
+		gpiod_set_value(boosten, 0);
+	}
+}
+
 static int adau1761_slv_mode_init(struct imx_adau1761_data *data)
 {
 	struct clk *new_parent;
@@ -309,7 +340,8 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 #endif
 	if( substream->stream == SNDRV_PCM_STREAM_PLAYBACK ) {
 		if( data->jecksetenable == CODEC_OUTPUT_LINEOUT && data->playstatus != -1)
-			gpiod_direction_output(data->gpios[0], 1);  /*enable amp out*/
+			//gpiod_direction_output(data->gpios[0], 1);  /*enable amp out*/
+			imx_adau1761_amp_enable(data, 1);
 	} else {
 		snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_MICBIASEN, 0, 0); /*mute Local MIC*/
 		if( data->jecksetenable == CODEC_OUTPUT_HEADPHONE ) {
@@ -336,7 +368,8 @@ static void imx_hifi_shutdown(struct snd_pcm_substream *substream)
 		adau1761_slv_mode_clock_enable(0,data);
 	if( substream->stream == SNDRV_PCM_STREAM_PLAYBACK ){
 		if( data->jecksetenable == CODEC_OUTPUT_LINEOUT ) 
-			gpiod_direction_output(data->gpios[0], 0); /*mute amp out*/
+			//gpiod_direction_output(data->gpios[0], 0); /*mute amp out*/
+			imx_adau1761_amp_enable(data, 0);
 	} else {
 			snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_MICBIASDISEN, 0, 0); /*mute Local MIC*/
 		if( data->jecksetenable == CODEC_OUTPUT_HEADPHONE ) {
@@ -494,12 +527,12 @@ int snd_amp_put_volsw(struct snd_kcontrol	*kcontrol,
 			adau_priv.info->irqenable = 1;
 	}
 	if (tmp == 100 ) {
-		ADAU_DBG("turn on amp\n");
-		gpiod_direction_output(adau_priv.info->gpios[0], 1);
+		//gpiod_direction_output(adau_priv.info->gpios[0], 1);
+		imx_adau1761_amp_enable(adau_priv.info, 1);
 		}
 	else if( tmp == 0 ) {
-		ADAU_DBG("turn off amp\n");
-		gpiod_direction_output(adau_priv.info->gpios[0], 0);
+		//gpiod_direction_output(adau_priv.info->gpios[0], 0);
+		imx_adau1761_amp_enable(adau_priv.info, 0);
 		}
 	return 0;
 }	
@@ -529,7 +562,7 @@ static const struct snd_kcontrol_new mastervolume_controls[] = {
 	
 };
 
-int jeck_handler(int sig,void * data)
+irqreturn_t jeck_handler(int sig,void * data)
 {
 	int value;
 	struct imx_adau1761_data *adaudata = (struct imx_adau1761_data *)data;
@@ -540,7 +573,10 @@ int jeck_handler(int sig,void * data)
 	if(adaudata->jecksetenable != value ) {
 		adaudata->jecksetenable = value;
 		if( adau_priv.info->playstatus == 1 && adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
-			gpiod_direction_output(adau_priv.info->gpios[0], value ? 0:1); /*value=1:mute amp out; value=0:unmute amp out*/	
+        {
+			//gpiod_direction_output(adau_priv.info->gpios[0], value ? 0:1); /*value=1:mute amp out; value=0:unmute amp out*/	
+			//imx_adau1761_amp_enable(adau_priv.info, value ? 0:1);
+        }
 		mdelay(100);
 		schedule_work(&adaudata->adauwq);
 		
@@ -549,6 +585,7 @@ int jeck_handler(int sig,void * data)
 	return IRQ_HANDLED;
 
 }
+
 void workquerehandler(void *data)
 {
 	if( adau_priv.info->jecksetenable ) {
@@ -675,19 +712,21 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	data->card.dapm_widgets = imx_dapm_widgets;
 	data->card.num_dapm_widgets = ARRAY_SIZE(imx_dapm_widgets);
 
-	gpiod_direction_output(amp_mute, 0);
-	gpiod_direction_output(amp_sd, 0);
-	gpiod_direction_output(boosten, 1);
-	gpiod_direction_input(jeck_detect);
-
+    // mute amp and shutdown boost converter
+    gpiod_direction_output(amp_mute, 0);
+    gpiod_direction_output(amp_sd, 1);
+    gpiod_direction_output(boosten, 0);
+    gpiod_direction_input(jeck_detect);
+    
 #ifndef USE_17X1_OPS
 	data->jeckdetirq = -1;
 	data->jecksetenable = -1;
 	data->playstatus =-1;
 	if ( jeck_detect )
 	{
+        int irqno;
 		ADAU_DBG("[kean]:init irq\n");
-		int irqno = gpiod_to_irq(jeck_detect);
+		irqno = gpiod_to_irq(jeck_detect);
 		
 		if(irqno<0)
 			ADAU_DBG("[kean]:failed to get gpio jeckdetect\n");
@@ -703,7 +742,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	} else 
 		ADAU_DBG("[kean]:failed to get gpio jeckdetect\n");
 	
-	INIT_WORK(&data->adauwq,workquerehandler);
+	INIT_WORK(&data->adauwq, workquerehandler);
 #endif
 	platform_set_drvdata(pdev, &data->card);
 	snd_soc_card_set_drvdata(&data->card, data);
