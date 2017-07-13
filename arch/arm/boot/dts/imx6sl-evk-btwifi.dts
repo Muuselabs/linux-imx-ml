@@ -48,6 +48,7 @@
 				MX6SL_PAD_SD1_DAT3__SD1_DATA3		0x17059
 				MX6SL_PAD_SD3_DAT1__GPIO5_IO20		0x13069 /* WL_HOST_WAKE */
 				MX6SL_PAD_SD3_DAT2__GPIO5_IO16		0x13069 /* WL_REG_ON */
+				MX6SL_PAD_SD3_DAT3__GPIO5_IO17		0x13069 /* BT_REG_ON */
 			>;
 		};
 
@@ -59,6 +60,16 @@
 			>;
 		};
 	};
+};
+/* Murata: declare UART4 interface for Bluetooth. */
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4_1>;
+	fsl,uart-has-rtscts;
+	status = "okay";
+	/* for DTE mode, add below change */
+	/* fsl,dte-mode; */
+	/* pinctrl-0 = <&pinctrl_uart4dte_1>; */
 };
 
 &usdhc1 {
