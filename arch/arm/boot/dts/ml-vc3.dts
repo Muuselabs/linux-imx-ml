@@ -106,23 +106,17 @@
 			MX6UL_PAD_GPIO1_IO01__I2C2_SDA  0x4001b8b0 /* PP: crosschecked sch VC3.0  20170714 */
 			>;
 		};
-
-		pinctrl_uart2: uart2grp {
-			fsl,pins = <
-			MX6UL_PAD_UART2_TX_DATA__UART2_DCE_TX	0x1b0b1
-			MX6UL_PAD_UART2_RX_DATA__UART2_DCE_RX	0x1b0b1
-			MX6UL_PAD_UART3_RX_DATA__UART2_DCE_RTS	0x1b0b1
-			MX6UL_PAD_UART3_TX_DATA__UART2_DCE_CTS	0x1b0b1
+		
+		pinctrl_ecspi4: ecspi4grp {
+			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
+			MX6UL_PAD_ENET2_RX_ER__ECSPI4_SS0         0x000010B0
+			MX6UL_PAD_ENET2_TX_CLK__ECSPI4_MISO       0x000010B0
+			MX6UL_PAD_ENET2_TX_DATA1__ECSPI4_SCLK     0x000010B0
+			MX6UL_PAD_ENET2_TX_EN__ECSPI4_MOSI        0x000010B0
 			>;
 		};
-	};
-};
 
-&uart2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart2>;
-	fsl,uart-has-rtscts;
-	status = "okay";
+	};
 };
 
 &usbotg1 {
@@ -133,6 +127,21 @@
 &usbphy1 {
 	tx-d-cal = <0x5>;
 };
+
+&ecspi4 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <&gpio3 26 0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi4>;
+	status = "okay";
+	
+	chip1: spidev@0 {
+		compatible = "spidev";
+		spi-max-frequency = <500000>;
+		reg = <0>;
+	};
+};
+
 
 /* WIFI / BT section */
 / {
@@ -160,7 +169,7 @@
 &iomuxc {
 	jooki-vc3-wifi {
 		pinctrl_usdhc1: usdhc1grp {
-			fsl,pins = <
+			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 			MX6UL_PAD_SD1_CMD__USDHC1_CMD     0x17059
 			MX6UL_PAD_SD1_CLK__USDHC1_CLK     0x10071
 			MX6UL_PAD_SD1_DATA0__USDHC1_DATA0 0x17059
@@ -171,8 +180,20 @@
 		};
 		
 		pinctrl_wifi: wifigrp {
-			fsl,pins = <
-			MX6UL_PAD_GPIO1_IO08__GPIO1_IO08          0x00003029 /* WL_REG_ON */   /* PP: crosschecked sch VC3.0  20170714 */
+			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
+			MX6UL_PAD_GPIO1_IO08__GPIO1_IO08          0x00003029 /* WL_REG_ON */   
+			MX6UL_PAD_GPIO1_IO04__GPIO1_IO04          0x0000B030 /* BT_REG_ON */
+			MX6UL_PAD_GPIO1_IO02__GPIO1_IO02          0x000100B0 /* BT_CLK_REQ */ 
+			MX6UL_PAD_UART3_CTS_B__GPIO1_IO26         0x0000B0B0 /* BT_RST_N */   
+			>;
+		};
+		
+		pinctrl_uart2: uart2grp {
+			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
+			MX6UL_PAD_UART2_TX_DATA__UART2_DCE_TX	0x1b0b1
+			MX6UL_PAD_UART2_RX_DATA__UART2_DCE_RX	0x1b0b1
+			MX6UL_PAD_UART2_RTS_B__UART2_DCE_RTS	0x1b0b1
+			MX6UL_PAD_UART2_CTS_B__UART2_DCE_CTS	0x1b0b1
 			>;
 		};
 	};
@@ -181,12 +202,12 @@
 &iomuxc_snvs {
 	imx6ul-evk {
 		pinctrl_wifi_snvs: wifigrp-snvs {
-			fsl,pins = <
+			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 #ifdef WLAN_OOB
-			MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03        0x000100A0 /* WL_HOST_WAKE */   /* PP: crosschecked sch VC3.0  20170714 */
+			MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03        0x000100A0 /* WL_HOST_WAKE */   
 #endif
 #ifdef BT_OOB
-			MX6ULL_PAD_SNVS_TAMPER1__GPIO5_IO01        0x000100A0 /* BT_HOST_WAKE */   /* PP: crosschecked sch VC3.0  20170714 */
+			MX6ULL_PAD_SNVS_TAMPER1__GPIO5_IO01        0x000100A0 /* BT_HOST_WAKE */
 #endif
 			>;
 		};
@@ -207,3 +228,177 @@
 	status = "okay";
 };
 
+/* Bluetooth UART */
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart2>;
+	fsl,uart-has-rtscts;
+	status = "okay";
+};
+
+
+/* Audio section */
+/ {
+	sound2 {
+		compatible = "fsl,imx-audio-adau1761";
+		model = "adau1761-audio";
+		cpu-dai = <&sai2>;
+		audio-codec = <&codec2>;
+		// FIXME: gpio mapping to be checked
+		amp-gpios=	<&gpio5 9 GPIO_ACTIVE_HIGH>, /*Amp MUTE*/
+		<&gpio5 5 GPIO_ACTIVE_HIGH>, /*Amp SD*/
+		<&gpio1 31 GPIO_ACTIVE_HIGH>; /*Boost EN*/
+		jeckdetect-gpios = 	<&gpio2 10 GPIO_ACTIVE_HIGH>; /*Jeck DET*/
+		
+		audio-routing =
+		"Line Out", "LOUT",  
+		"Line Out", "ROUT",  
+		"Headphone Out", "LHP",  
+		"Headphone Out",  "RHP";
+		/*			
+		 *		"LMic In", "LINN",
+		 *		"HMic In", "RINN";
+		 */
+	};
+};
+
+&iomuxc {
+	jooki-vc3-audio {
+		pinctrl_sai2: sai2grp {
+			fsl,pins = <
+			MX6UL_PAD_JTAG_TDI__SAI2_TX_BCLK	0x17088
+			MX6UL_PAD_JTAG_TDO__SAI2_TX_SYNC	0x17088
+			MX6UL_PAD_JTAG_TRST_B__SAI2_TX_DATA	0x11088
+			MX6UL_PAD_JTAG_TCK__SAI2_RX_DATA	0x11088
+			MX6UL_PAD_JTAG_TMS__CCM_CLKO1		0x17088
+			
+			MX6UL_PAD_ENET2_RX_EN__GPIO2_IO10         0x00011030 /* JACK DETECT */
+			MX6UL_PAD_UART5_RX_DATA__GPIO1_IO31       0x00001030 /* BOOST_EN */
+			>;
+		};
+	};
+};
+
+&iomuxc_snvs {
+	jooki-vc3-audio-snvs {
+		pinctrl_sai2_snvs: sai2grp_snvs {
+			fsl,pins = <
+			MX6ULL_PAD_SNVS_TAMPER5__GPIO5_IO05        0x00011020 /* AMP_FAULT/AMP_SD */
+			MX6ULL_PAD_SNVS_TAMPER9__GPIO5_IO09        0x00011020 /* AMP_MUTE */
+			>;
+		};
+	};
+};
+
+&i2c1 {
+	codec2: adau1761@38 {
+		compatible = "sigma,adau1761";
+		reg = <0x38>;
+		clocks = <&clks IMX6UL_CLK_SAI2>;
+		clock-names = "mclk";
+	};
+};
+
+&sai2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai2>;
+	assigned-clocks = <&clks IMX6UL_CLK_SAI2_SEL>,<&clks IMX6UL_CLK_SAI2>;
+	assigned-clock-parents = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
+	assigned-clock-rates = <0>, <11289600>;
+	status = "okay";
+};
+
+
+/* Keys and LED control */
+/ {
+	keys {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpio_keys>;
+#if 0 // FIXME: TODO
+		user1 {
+			label = "Volume Up";
+			gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEUP>;
+		};
+		user2 {
+			label = "Volume Down";
+			gpios = <&gpio1 2 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEDOWN>;
+		};
+		user3 {
+			label = "Previous";
+			gpios = <&gpio5 9 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_PREVIOUSSONG>;
+		};
+		user4 {
+			label = "Next";
+			gpios = <&gpio5 7 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_NEXTSONG>;
+		};
+		user5 {
+			label = "Play";
+			gpios = <&gpio1 0 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_PLAY>;
+		};
+		user6 {
+			label = "Radio on";
+			gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+		user7 {
+			label = "Airplane mode";
+			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_OPTION>;
+		};
+#endif
+	};
+};
+
+&iomuxc {
+	jooki-vc3-keys {
+		pinctrl_gpio_keys: gpio_keysgrp {
+			fsl,pins = <
+			>;
+		};
+	};
+};
+
+&iomuxc_snvs {
+	imx6ul-evk {
+		pinctrl_gpio_keys_snvs: gpio_keysgrp_snvs {
+			fsl,pins = <
+			>;
+		};
+	};
+};
+
+&snvs_pwrkey {
+	linux,keycode = <KEY_POWER2>;
+	status = "okay";
+};
+
+/* Power management and control
+ */
+
+&snvs_poweroff {
+	status = "okay";
+};
+
+&iomuxc {
+	jooki-vc3-keys {
+		pinctrl_adc1: adc1grp {
+			fsl,pins = <
+			>;
+		};
+	};
+};
+
+&iomuxc_snvs {
+	imx6ul-evk {
+		pinctrl_pwr: gpio_pwr_snvs {
+			fsl,pins = <
+			>;
+		};
+	};
+};
