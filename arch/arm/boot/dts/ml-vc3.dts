@@ -128,6 +128,20 @@
 	tx-d-cal = <0x5>;
 };
 
+&i2c1 {
+	clock-frequency = <400000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c1>;
+	status = "okay";
+};
+
+&i2c2 {
+	clock_frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";	
+};
+
 &ecspi4 {
 	fsl,spi-num-chipselects = <1>;
 	cs-gpios = <&gpio3 26 0>;
@@ -200,7 +214,7 @@
 };
 
 &iomuxc_snvs {
-	imx6ul-evk {
+	jooki-vc3-wifi-snvs {
 		pinctrl_wifi_snvs: wifigrp-snvs {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 #ifdef WLAN_OOB
