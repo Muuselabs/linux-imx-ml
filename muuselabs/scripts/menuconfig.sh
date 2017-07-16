@@ -10,15 +10,15 @@ cd ../..
 
 SDK_DIR=`cd "../sdk"; pwd`
 
+CONFIG_NAME=""
 set +eu
-CONFIG_OVERRIDE=$1
+CONFIG_NAME=$1
 set -eu
 
 export ARCH=arm
 export CROSS_COMPILE=arm-fslc-linux-gnueabi-
 PATH=$PATH:$SDK_DIR/sysroots/x86_64-fslcsdk-linux/usr/bin/arm-fslc-linux-gnueabi
 make ${CONFIG_NAME} menuconfig
-make menuconfig
 make savedefconfig
 if [ ! "${CONFIG_NAME}" = "" ]; then
 	cp -f defconfig ./arch/arm/configs/${CONFIG_NAME}
