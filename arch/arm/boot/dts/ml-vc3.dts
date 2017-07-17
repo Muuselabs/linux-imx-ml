@@ -89,6 +89,7 @@
 	};
 };
 
+#define GPIO_SPI
 /* Serial interfaces
  */
 &iomuxc {
@@ -106,7 +107,16 @@
 			MX6UL_PAD_GPIO1_IO01__I2C2_SDA  0x4001b8b0
 			>;
 		};
-
+#ifdef GPIO_SPI
+		pinctrl_gpio_spi: ecspi4grp {
+			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
+			MX6UL_PAD_ENET2_RX_ER__GPIO2_IO15         0x000010B0 /* SS */
+			MX6UL_PAD_ENET2_TX_CLK__GPIO2_IO14        0x000010B0 /* MISO */
+			MX6UL_PAD_ENET2_TX_DATA1__GPIO2_IO12      0x000010B0 /* SCK */
+			MX6UL_PAD_ENET2_TX_EN__GPIO2_IO13         0x4001B031 /* MOSI */
+			>;
+		};
+#else
 		pinctrl_ecspi4: ecspi4grp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 			MX6UL_PAD_ENET2_RX_ER__ECSPI4_SS0         0x000010B0
@@ -115,7 +125,7 @@
 			MX6UL_PAD_ENET2_TX_EN__ECSPI4_MOSI        0x4001B031
 			>;
 		};
-
+#endif
 	};
 };
 
@@ -142,18 +152,44 @@
 	status = "okay";	
 };
 
-&ecspi4 {
-   fsl,spi-num-chipselects = <1>;
-   pinctrl-names = "default";
-   pinctrl-0 = <&pinctrl_ecspi4>;
-   status = "okay";
-   
-   chip1: spidev@0 {
-	   compatible = "spidev";
-	   spi-max-frequency = <500000>;
-	   reg = <0>;
-   };
+#ifdef GPIO_SPI
+/{
+	spi {
+		compatible = "spi-gpio";
+		#address-cells = <0x1>;
+		ranges;
+
+		gpio-sck = <&gpio2 12 0>;
+		gpio-miso = <&gpio2 14 0>;
+		gpio-mosi = <&gpio2 13 0>;
+		cs-gpios = <&gpio2 15 0>;
+		num-chipselects = <1>;
+		
+		/* clients */
+		chip1: spidev@0 {
+			compatible = "spidev";
+			spi-max-frequency = <500000>;
+			#address-cells = <0x1>;
+			reg = <0>;
+		};
+	};
 };
+
+#else
+&ecspi4 {
+	fsl,spi-num-chipselects = <1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi4>;
+	status = "okay";
+	cs-gpios = <&gpio2 15 0>;
+	
+	chip1: spidev@0 {
+		compatible = "spidev";
+		spi-max-frequency = <500000>;
+		reg = <0>;
+	};
+};
+#endif
 
 /* WIFI / BT section */
 / {
@@ -363,7 +399,13 @@
 			gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_OPTION>;
 		};
-
+		/*
+		user8 {
+			label = "test key";
+			gpios = <&gpio2 14 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_ESC>;
+		};
+		*/
 	};
 };
 
