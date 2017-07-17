@@ -106,13 +106,13 @@
 			MX6UL_PAD_GPIO1_IO01__I2C2_SDA  0x4001b8b0
 			>;
 		};
-		
+
 		pinctrl_ecspi4: ecspi4grp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 			MX6UL_PAD_ENET2_RX_ER__ECSPI4_SS0         0x000010B0
 			MX6UL_PAD_ENET2_TX_CLK__ECSPI4_MISO       0x000010B0
 			MX6UL_PAD_ENET2_TX_DATA1__ECSPI4_SCLK     0x000010B0
-			MX6UL_PAD_ENET2_TX_EN__ECSPI4_MOSI        0x000010B0
+			MX6UL_PAD_ENET2_TX_EN__ECSPI4_MOSI        0x4001B031
 			>;
 		};
 
@@ -143,19 +143,17 @@
 };
 
 &ecspi4 {
-	fsl,spi-num-chipselects = <1>;
-	cs-gpios = <&gpio3 26 0>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ecspi4>;
-	status = "okay";
-	
-	chip1: spidev@0 {
-		compatible = "spidev";
-		spi-max-frequency = <500000>;
-		reg = <0>;
-	};
+   fsl,spi-num-chipselects = <1>;
+   pinctrl-names = "default";
+   pinctrl-0 = <&pinctrl_ecspi4>;
+   status = "okay";
+   
+   chip1: spidev@0 {
+	   compatible = "spidev";
+	   spi-max-frequency = <500000>;
+	   reg = <0>;
+   };
 };
-
 
 /* WIFI / BT section */
 / {
