@@ -33,6 +33,12 @@
 #include "imx-audmux.h"
 #include "imx-ssi.h"
 
+#define AMPMUTEOFF 1
+#define AMPMUTEON 0
+#define AMPBOOSTENON 1
+#define AMPBOOSTENOFF 0
+#define AMPSDON 0
+#define AMPSDOFF 1
 
 #define DAI_NAME_SIZE	32
 #define AMP_PIN_NUMBER 4
@@ -107,24 +113,24 @@ static void imx_adau1761_amp_enable(struct imx_adau1761_data *data, int en)
 	if(en) {
 		ADAU_DBG("turn on amp\n");        
 		// enable boost converter and un-mute amp
-		gpiod_set_value(boosten, 1);
+		gpiod_set_value(boosten, AMPBOOSTENON);
 
 		// sleep until the supply is ready
 		mdelay(5);
-        
+        	
 		// enable the amplifier
-		gpiod_set_value(amp_sd, 0);
-		mdelay(400);
-        
-		gpiod_set_value(amp_mute, 1);
+		gpiod_set_value(amp_sd, AMPSDON);
+		mdelay(1000);
+        	//gpiod_set_value(amp_mute, AMPMUTEON);
+		
 	} else {
 		ADAU_DBG("turn off amp\n");        
 		// mute amp and disable boost converter
-		gpiod_set_value(amp_mute, 0);
+		//gpiod_set_value(amp_mute, 0);
 		mdelay(1);
-		gpiod_set_value(amp_sd, 1);
+		gpiod_set_value(amp_sd, AMPSDOFF);
 		mdelay(1);
-		gpiod_set_value(boosten, 0);
+		gpiod_set_value(boosten, AMPBOOSTENOFF);
 	}
 }
 
@@ -231,7 +237,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 
 	ret = snd_soc_dai_set_fmt(cpu_dai, dai_format);
 	if ( ret < 0 ){
-		ADAU_DBG("[kean]:%s:%d: failed!\n",__func__,__LINE__);
+		ADAU_DBG(" %s:%d: failed!\n",__func__,__LINE__);
 		return ret;
 	}
 
@@ -290,7 +296,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 
 	ret = snd_soc_dai_set_fmt(codec_dai, dai_format);
 	if ( ret < 0 ){
-		ADAU_DBG("[kean]:%s:%d: failed!\n",__func__,__LINE__);
+		ADAU_DBG(" %s:%d: failed!\n",__func__,__LINE__);
 		return ret;
 	}
 #endif
@@ -313,7 +319,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_set_pll (codec_dai, ADAU17X1_PLL,
 			ADAU17X1_PLL_SRC_MCLK, 12288000, data->sysclk);
 	if ( ret < 0 ) {
-		ADAU_DBG("[kean]:%s:%d: failed!\n",__func__,__LINE__);
+		ADAU_DBG(" %s:%d: failed!\n",__func__,__LINE__);
 		return ret;
 	}
 	
@@ -326,11 +332,11 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 		disable_irq(data->jeckdetirq);
 		ret = gpiod_get_value(data->gpios[3]);
 		if( ret == CODEC_OUTPUT_HEADPHONE ) {
-			 ADAU_DBG("[kean]:gpio jeck detect high\n");
+			 ADAU_DBG(" gpio jeck detect high\n");
 			 snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_MUTELOUT, 0, 0); /*mute Lineout*/
 			 snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_UNMUTEHP, 0, 0); /*unmute headphone*/
 		} else {
-			ADAU_DBG("[kean]:gpio jeck detect low\n");
+			ADAU_DBG(" gpio jeck detect low\n");
 			snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_UNMUTELOUT, 0, 0); /*unmute Lineout*/
 			snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_MUTEHP, 0, 0); /*mute headphone*/
 		}
@@ -353,7 +359,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	
 	data->stream = substream->stream;
 	data->playstatus =1;
-	ADAU_DBG("[kean]:out imx_hifi_hw_params_slv_mode\n");
+	ADAU_DBG(" out imx_hifi_hw_params_slv_mode\n");
 	return 0;
 }
 
@@ -568,7 +574,7 @@ irqreturn_t jeck_handler(int sig,void * data)
 	struct imx_adau1761_data *adaudata = (struct imx_adau1761_data *)data;
 	disable_irq_nosync(sig);
 	value = gpiod_get_value(adaudata->gpios[3]);
-	//ADAU_DBG("jeck sigle come in value:%d\n",value);	
+	ADAU_DBG("jeck sigle come in value:%d\n",value);	
 	
 	if(adaudata->jecksetenable != value ) {
 		adaudata->jecksetenable = value;
@@ -614,7 +620,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	struct gpio_desc *amp_mute, *amp_sd, *boosten,*jeck_detect;
 	int ret;
 	
-	ADAU_DBG( "[kean]:in %s\n" , __func__ );
+	ADAU_DBG( " in %s\n" , __func__ );
 	
 	priv->pdev = pdev;
 
@@ -713,9 +719,9 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	data->card.num_dapm_widgets = ARRAY_SIZE(imx_dapm_widgets);
 
     // mute amp and shutdown boost converter
-    gpiod_direction_output(amp_mute, 0);
-    gpiod_direction_output(amp_sd, 1);
-    gpiod_direction_output(boosten, 0);
+    gpiod_direction_output(amp_mute, AMPMUTEOFF);
+    gpiod_direction_output(amp_sd, AMPSDOFF);
+    gpiod_direction_output(boosten, AMPBOOSTENOFF);
     gpiod_direction_input(jeck_detect);
     
 #ifndef USE_17X1_OPS
@@ -725,22 +731,22 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	if ( jeck_detect )
 	{
         int irqno;
-		ADAU_DBG("[kean]:init irq\n");
+		ADAU_DBG(" init irq\n");
 		irqno = gpiod_to_irq(jeck_detect);
 		
 		if(irqno<0)
-			ADAU_DBG("[kean]:failed to get gpio jeckdetect\n");
+			ADAU_DBG(" failed to get gpio jeckdetect\n");
 		else
 			ret = request_irq(irqno, jeck_handler, IRQF_TRIGGER_RISING|IRQF_TRIGGER_FALLING, "ject_detect", data);
 		if( ret<0 )
-			ADAU_DBG("[kean]:failed to request ject irq \n");
+			ADAU_DBG(" failed to request ject irq \n");
 		else  {
 			data->jeckdetirq = irqno;
 			disable_irq_nosync(data->jeckdetirq);
 			data->irqenable = 0;
 		}
 	} else 
-		ADAU_DBG("[kean]:failed to get gpio jeckdetect\n");
+		ADAU_DBG(" failed to get gpio jeckdetect\n");
 	
 	INIT_WORK(&data->adauwq, workquerehandler);
 #endif

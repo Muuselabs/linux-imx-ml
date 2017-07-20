@@ -330,6 +330,7 @@ static int fsl_sai_set_bclk(struct snd_soc_dai *dai, bool tx, u32 freq)
 
 	for (id = 0; id < FSL_SAI_MCLK_MAX; id++) {
 		clk_rate = clk_get_rate(sai->mclk_clk[id]);
+		dev_err(dai->dev,"ratio  Mclock %ldHz\n",clk_rate);
 		if (!clk_rate)
 			continue;
 
@@ -655,7 +656,7 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 	
 	int ret;
 	if (!sai->is_slave_mode) {
-		ret = fsl_sai_set_bclk(cpu_dai, 1,2 * 32 * 44100);
+		ret = fsl_sai_set_bclk(cpu_dai, 1, 2 * 16 * 44100);
 		if (ret)
 			return ret;
 
@@ -841,6 +842,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	for (i = 0; i < FSL_SAI_MCLK_MAX; i++) {
 		sprintf(tmp, "mclk%d", i);
 		sai->mclk_clk[i] = devm_clk_get(&pdev->dev, tmp);
+		dev_err(&pdev->dev, "get mclk%d clock: %ld\n",i + 1, clk_get_rate(sai->mclk_clk[i]));
 		if (IS_ERR(sai->mclk_clk[i])) {
 			dev_err(&pdev->dev, "failed to get mclk%d clock: %ld\n",
 					i + 1, PTR_ERR(sai->mclk_clk[i]));

@@ -58,8 +58,10 @@
 
 #undef USE_17X1_OPS
 
+#define _ADAU_DBG
+
 #ifdef _ADAU_DBG
-#define  ADAU_DBG(format, ...) printk(format, ## __VA_ARGS__)
+#define  ADAU_DBG(format, ...) printk("[ADAU] " format, ## __VA_ARGS__)
 #else
 #define ADAU_DBG(format, ...)
 #endif
