@@ -14,8 +14,8 @@ CONFIG_NAME=""
 set +eu
 CONFIG_NAME=$1
 set -eu
-CONFIG_NAME=${CONFIG_OVERRIDE:-ml-imx6ulevk_defconfig}
-echo "Configuring: $CONFIG_NAME"
+#CONFIG_NAME=${CONFIG_OVERRIDE:-ml-imx6ulevk_defconfig}
+#echo "Configuring: $CONFIG_NAME"
 
 export ARCH=arm
 export CROSS_COMPILE=arm-fslc-linux-gnueabi-
