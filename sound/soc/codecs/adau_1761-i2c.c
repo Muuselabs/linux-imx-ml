@@ -618,7 +618,7 @@ static int adau1761_codec_probe(struct snd_soc_codec *codec)
 	struct adau *adau = snd_soc_codec_get_drvdata(codec);
 	int ret;
 
-	ADAU_DBG("[kean]:in %s\n",__func__);
+	ADAU_DBG(" in %s\n",__func__);
 	
 	ret = adau17x1_add_widgets(codec);
 	if (ret < 0)
@@ -686,7 +686,7 @@ static int adau1761_codec_probe(struct snd_soc_codec *codec)
 		return ret;
 
 
-	ADAU_DBG("[kean]:out %s\n",__func__);
+	ADAU_DBG(" out %s\n",__func__);
 	return 0;
 }
 
@@ -750,7 +750,7 @@ int SIGMA_WRITE_REGISTER_BLOCK(unsigned int IC_addr,unsigned int addr,  size_t l
 {
 	int ret ;
 	ret = sigmadsp_write_i2c(local_client,addr, len, data);
-	if( ret < 0 ) ADAU_DBG("[kean]:dsp write failed !!\n");
+	if( ret < 0 ) ADAU_DBG(" dsp write failed !!\n");
  	return ret;
 }
 int SIGMA_WRITE_DELAY(unsigned int IC_addr, size_t len,const uint8_t data[] )
@@ -762,27 +762,27 @@ static int initflag=1;
 static int adau1761_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
 {
-	ADAU_DBG("[kean]:in %s\n",__func__);
+	ADAU_DBG(" in %s\n",__func__);
 
 	return 0;
 }
 static int adau1761_set_dai_sysclk(struct snd_soc_dai *dai,
 		int clk_id, unsigned int freq, int dir)
 {
-	ADAU_DBG("[kean]:in %s\n",__func__);
+	ADAU_DBG(" in %s\n",__func__);
 	return 0;
 }
 static int adau1761_set_dai_fmt(struct snd_soc_dai *dai,
 		unsigned int fmt)
 {
-	ADAU_DBG("[kean]:in %s\n",__func__);
+	ADAU_DBG(" in %s\n",__func__);
 	return 0;
 }
 
 static int adau1761_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {	
-	ADAU_DBG("[kean]:in %s %s\n",__func__,substream->stream == SNDRV_PCM_STREAM_CAPTURE ? "Capture":"Playback");
+	ADAU_DBG(" in %s %s\n",__func__,substream->stream == SNDRV_PCM_STREAM_CAPTURE ? "Capture":"Playback");
 	if(initflag) {
 		initflag =0;
 	}
@@ -800,13 +800,13 @@ static int adau1761_startup(struct snd_pcm_substream *substream,
 static int adau1761_set_dai_pll(struct snd_soc_dai *dai, int pll_id,
 	int source, unsigned int freq_in, unsigned int freq_out)
 {
-	ADAU_DBG("[kean]:in %s\n",__func__);
+	ADAU_DBG(" in %s\n",__func__);
 	return 0;
 }
 static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 	unsigned int tx_mask, unsigned int rx_mask, int slots, int slot_width)
 {
-	ADAU_DBG("[kean]:in %s : tx:%x rx:%x :",__func__,tx_mask,rx_mask);
+	ADAU_DBG(" in %s : tx:%x rx:%x :",__func__,tx_mask,rx_mask);
 
 	if( tx_mask == USERCOMMAND ) {
 		switch (rx_mask) {
@@ -929,7 +929,7 @@ int adau1761_probe(struct device *dev, struct regmap *regmap,
 	struct snd_soc_dai_driver *dai_drv;
 	const char *firmware_name;
 	int ret =0;
-	ADAU_DBG("[kean]:in %s\n",__func__);
+	ADAU_DBG(" in %s\n",__func__);
 
 	if (!dev->platform_data)  
        	dev->platform_data = &adau_pdata;
@@ -949,7 +949,7 @@ int adau1761_probe(struct device *dev, struct regmap *regmap,
 	if (ret)
 		return ret;
 
-	ADAU_DBG("[kean]:out %s\n",__func__);
+	ADAU_DBG(" out %s\n",__func__);
 	return ret;
 }
 
@@ -975,7 +975,7 @@ static int adau1761_i2c_probe(struct i2c_client *client,
 {
 	int ret =0;
 	struct regmap_config config;
-	ADAU_DBG("[kean]:in %s\n",__func__);
+	ADAU_DBG(" in %s\n",__func__);
 	config = adau1761_regmap_config;
 	config.val_bits = 8;
 	config.reg_bits = 16;

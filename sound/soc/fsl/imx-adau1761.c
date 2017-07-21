@@ -112,25 +112,32 @@ static void imx_adau1761_amp_enable(struct imx_adau1761_data *data, int en)
     
 	if(en) {
 		ADAU_DBG("turn on amp\n");        
+
+
 		// enable boost converter and un-mute amp
 		gpiod_set_value(boosten, AMPBOOSTENON);
 
 		// sleep until the supply is ready
-		mdelay(5);
-        	
-		// enable the amplifier
+		mdelay(10);
+        					// enable the amplifier
 		gpiod_set_value(amp_sd, AMPSDON);
-		mdelay(1000);
-        	//gpiod_set_value(amp_mute, AMPMUTEON);
+				
+		mdelay(100);
+
+        	gpiod_set_value(amp_mute, AMPMUTEOFF);
+		mdelay(50);
 		
 	} else {
 		ADAU_DBG("turn off amp\n");        
 		// mute amp and disable boost converter
-		//gpiod_set_value(amp_mute, 0);
-		mdelay(1);
+		gpiod_set_value(amp_mute, AMPMUTEON);
+
+		mdelay(5);
 		gpiod_set_value(amp_sd, AMPSDOFF);
-		mdelay(1);
+
+		mdelay(5);
 		gpiod_set_value(boosten, AMPBOOSTENOFF);
+
 	}
 }
 
@@ -532,6 +539,7 @@ int snd_amp_put_volsw(struct snd_kcontrol	*kcontrol,
 			enable_irq(adau_priv.info->jeckdetirq);
 			adau_priv.info->irqenable = 1;
 	}
+	/*
 	if (tmp == 100 ) {
 		//gpiod_direction_output(adau_priv.info->gpios[0], 1);
 		imx_adau1761_amp_enable(adau_priv.info, 1);
@@ -539,7 +547,7 @@ int snd_amp_put_volsw(struct snd_kcontrol	*kcontrol,
 	else if( tmp == 0 ) {
 		//gpiod_direction_output(adau_priv.info->gpios[0], 0);
 		imx_adau1761_amp_enable(adau_priv.info, 0);
-		}
+		}*/
 	return 0;
 }	
 
@@ -579,13 +587,12 @@ irqreturn_t jeck_handler(int sig,void * data)
 	if(adaudata->jecksetenable != value ) {
 		adaudata->jecksetenable = value;
 		if( adau_priv.info->playstatus == 1 && adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
-        {
+        	{
 			//gpiod_direction_output(adau_priv.info->gpios[0], value ? 0:1); /*value=1:mute amp out; value=0:unmute amp out*/	
 			//imx_adau1761_amp_enable(adau_priv.info, value ? 0:1);
-        }
+       	 }
 		mdelay(100);
 		schedule_work(&adaudata->adauwq);
-		
 	}
 	enable_irq(sig);
 	return IRQ_HANDLED;
@@ -719,7 +726,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	data->card.num_dapm_widgets = ARRAY_SIZE(imx_dapm_widgets);
 
     // mute amp and shutdown boost converter
-    gpiod_direction_output(amp_mute, AMPMUTEOFF);
+    gpiod_direction_output(amp_mute, AMPMUTEON);
     gpiod_direction_output(amp_sd, AMPSDOFF);
     gpiod_direction_output(boosten, AMPBOOSTENOFF);
     gpiod_direction_input(jeck_detect);
