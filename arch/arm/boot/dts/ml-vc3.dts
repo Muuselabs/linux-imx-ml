@@ -408,7 +408,7 @@
 		};
 		user7 {
 			label = "Airplane mode";
-			gpios = <&gpio2 8 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;
 			linux,code = <KEY_OPTION>;
 		};
 		/*
