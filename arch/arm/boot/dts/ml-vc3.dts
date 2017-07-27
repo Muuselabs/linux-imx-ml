@@ -72,8 +72,7 @@
 	pinctrl-0 = <&pinctrl_hog_1>;
 	jooki-vc3-hog {
 		pinctrl_hog_1: hoggrp-1 {
-			fsl,pins = <
-			>;
+      			/* Note(wdm) Generates error: fsl,pins = <>; */
 		};
 	};
 };
@@ -83,8 +82,7 @@
 	pinctrl-0 = <&pinctrl_hog_2>;
 	jooki-vc3-hog-snvs {
 		pinctrl_hog_2: hoggrp-2 {
-			fsl,pins = <
-			>;
+                	/* Note(wdm) Generates error: fsl,pins = <>; */
 		};
 	};
 };
@@ -247,9 +245,11 @@
 	};
 };
 
+
 &iomuxc_snvs {
 	jooki-vc3-wifi-snvs {
 		pinctrl_wifi_snvs: wifigrp-snvs {
+#if defined(WLAN_OOB) || definied(BT_OOB) /* Note(wdm) Avoid empty property */
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 #ifdef WLAN_OOB
 			MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03        0x000100A0 /* WL_HOST_WAKE */   
@@ -258,6 +258,7 @@
 			MX6ULL_PAD_SNVS_TAMPER1__GPIO5_IO01        0x000100A0 /* BT_HOST_WAKE */
 #endif
 			>;
+#endif
 		};
 	};
 };
@@ -478,8 +479,7 @@
 &iomuxc_snvs {
 	jooki-vc3-pwr-snvs {
 		pinctrl_pwr_snvs: gpio_pwr_snvs {
-			fsl,pins = <
-			>;
+			/* Note(wdm) Generates error: fsl,pins = <>; */
 		};
 	};
 };
