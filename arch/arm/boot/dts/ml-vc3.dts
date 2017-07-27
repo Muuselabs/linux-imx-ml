@@ -263,7 +263,7 @@
 &iomuxc_snvs {
 	jooki-vc3-wifi-snvs {
 		pinctrl_wifi_snvs: wifigrp-snvs {
-#if defined(WLAN_OOB) || definied(BT_OOB) /* Note(wdm) Avoid empty property */
+#if defined(WLAN_OOB) || defined(BT_OOB) /* Note(wdm) Avoid empty property */
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 #ifdef WLAN_OOB
 			MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03        0x000100A0 /* WL_HOST_WAKE */   
