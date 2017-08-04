@@ -1,8 +1,8 @@
 /*
  * File:           E:\WORK\Jookibox\资料\dsp\aux_dsp\1761\adau1761_IC_1_REG.h
  *
- * Created:        Thursday, March 23, 2017 12:09:55 PM
- * Description:    Jooki Box V2.5 17-3-17:IC 1 control register definitions.
+ * Created:        Friday, August 04, 2017 10:00:51 AM
+ * Description:    Jooki Box V2.6 17-8-4:IC 1 control register definitions.
  *
  * This software is distributed in the hope that it will be useful,
  * but is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
@@ -248,17 +248,17 @@
 /* CRC Ideal_1  - Registers (IC 1) */
 #define REG_CRC_IDEAL_1_IC_1_ADDR                 0x40C0
 #define REG_CRC_IDEAL_1_IC_1_BYTE                 1
-#define REG_CRC_IDEAL_1_IC_1_VALUE                0x68
+#define REG_CRC_IDEAL_1_IC_1_VALUE                0x7F
 
 /* CRC Ideal_2  - Registers (IC 1) */
 #define REG_CRC_IDEAL_2_IC_1_ADDR                 0x40C1
 #define REG_CRC_IDEAL_2_IC_1_BYTE                 1
-#define REG_CRC_IDEAL_2_IC_1_VALUE                0x7F
+#define REG_CRC_IDEAL_2_IC_1_VALUE                0x30
 
 /* CRC Ideal_3  - Registers (IC 1) */
 #define REG_CRC_IDEAL_3_IC_1_ADDR                 0x40C2
 #define REG_CRC_IDEAL_3_IC_1_BYTE                 1
-#define REG_CRC_IDEAL_3_IC_1_VALUE                0x46
+#define REG_CRC_IDEAL_3_IC_1_VALUE                0x7F
 
 /* CRC Ideal_4  - Registers (IC 1) */
 #define REG_CRC_IDEAL_4_IC_1_ADDR                 0x40C3
@@ -278,7 +278,7 @@
 /* GPIO 1 Control  - Registers (IC 1) */
 #define REG_GPIO_1_CONTROL_IC_1_ADDR              0x40C7
 #define REG_GPIO_1_CONTROL_IC_1_BYTE              1
-#define REG_GPIO_1_CONTROL_IC_1_VALUE             0x0
+#define REG_GPIO_1_CONTROL_IC_1_VALUE             0xC
 
 /* GPIO 2 Control  - Registers (IC 1) */
 #define REG_GPIO_2_CONTROL_IC_1_ADDR              0x40C8
@@ -338,7 +338,7 @@
 /* Routing Matrix Outputs  - Registers (IC 1) */
 #define REG_ROUTING_MATRIX_OUTPUTS_IC_1_ADDR      0x40F3
 #define REG_ROUTING_MATRIX_OUTPUTS_IC_1_BYTE      1
-#define REG_ROUTING_MATRIX_OUTPUTS_IC_1_VALUE     0x0
+#define REG_ROUTING_MATRIX_OUTPUTS_IC_1_VALUE     0x1
 
 /* Serial Data/GPIO Pin Config  - Registers (IC 1) */
 #define REG_SERIAL_DATAGPIO_PIN_CONFIG_IC_1_ADDR  0x40F4
@@ -875,17 +875,17 @@
 #define R44_DEJITTER_IC_1_SHIFT                   0
 
 /* CRC Ideal_1 (IC 1) */
-#define R45_CRC_IDEAL_1_IC_1                      0x68   /* 01101000b	[7:0] */
+#define R45_CRC_IDEAL_1_IC_1                      0x7F   /* 01111111b	[7:0] */
 #define R45_CRC_IDEAL_1_IC_1_MASK                 0xFF
 #define R45_CRC_IDEAL_1_IC_1_SHIFT                0
 
 /* CRC Ideal_2 (IC 1) */
-#define R46_CRC_IDEAL_2_IC_1                      0x7F   /* 01111111b	[7:0] */
+#define R46_CRC_IDEAL_2_IC_1                      0x30   /* 00110000b	[7:0] */
 #define R46_CRC_IDEAL_2_IC_1_MASK                 0xFF
 #define R46_CRC_IDEAL_2_IC_1_SHIFT                0
 
 /* CRC Ideal_3 (IC 1) */
-#define R47_CRC_IDEAL_3_IC_1                      0x46   /* 01000110b	[7:0] */
+#define R47_CRC_IDEAL_3_IC_1                      0x7F   /* 01111111b	[7:0] */
 #define R47_CRC_IDEAL_3_IC_1_MASK                 0xFF
 #define R47_CRC_IDEAL_3_IC_1_SHIFT                0
 
@@ -905,7 +905,7 @@
 #define R50_GPIO_0_PIN_FUNCTION_IC_1_SHIFT        0
 
 /* GPIO 1 Control (IC 1) */
-#define R51_GPIO_1_PIN_FUNCTION_IC_1              0x0    /* 0000b	[3:0] */
+#define R51_GPIO_1_PIN_FUNCTION_IC_1              0xC    /* 1100b	[3:0] */
 #define R51_GPIO_1_PIN_FUNCTION_IC_1_MASK         0xF
 #define R51_GPIO_1_PIN_FUNCTION_IC_1_SHIFT        0
 
@@ -965,7 +965,7 @@
 #define R62_ROUTING_MATRIX_IN_IC_1_SHIFT          0
 
 /* Routing Matrix Outputs (IC 1) */
-#define R63_ROUTING_MATRIX_OUT_IC_1               0x0    /* 0000b	[3:0] */
+#define R63_ROUTING_MATRIX_OUT_IC_1               0x1    /* 0001b	[3:0] */
 #define R63_ROUTING_MATRIX_OUT_IC_1_MASK          0xF
 #define R63_ROUTING_MATRIX_OUT_IC_1_SHIFT         0
 
