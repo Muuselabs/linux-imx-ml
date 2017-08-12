@@ -39,3 +39,20 @@
 	tx-d-cal = <0x5>;
 };
 
+&iomuxc {
+	jooki-vc3-peri {
+		pinctrl_i2c1: i2c1grp {
+			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
+			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL 0x4001b8b0
+			MX6UL_PAD_UART4_RX_DATA__I2C1_SDA 0x4001b8b0 
+			>;
+		};
+	};
+};
+
+&i2c1 {
+	clock-frequency = <400000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c1>;
+	status = "okay";
+};
