@@ -589,10 +589,14 @@ irqreturn_t jeck_handler(int sig,void * data)
 		if( adau_priv.info->playstatus == 1 && adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
         	{
 			//gpiod_direction_output(adau_priv.info->gpios[0], value ? 0:1); /*value=1:mute amp out; value=0:unmute amp out*/	
-			//imx_adau1761_amp_enable(adau_priv.info, value ? 0:1);
+			//imx_adau1761_amp_enable(adau_priv.info, );
+			imx_adau1761_amp_enable(data, value ? 0:1);
+			
        	 }
 		mdelay(100);
 		schedule_work(&adaudata->adauwq);
+		
+		
 	}
 	enable_irq(sig);
 	return IRQ_HANDLED;
