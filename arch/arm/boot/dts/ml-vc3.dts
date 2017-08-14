@@ -594,6 +594,7 @@
 	no-1-8-v;
 	keep-power-in-suspend;
 	cd-gpios = <&gpio4 17 GPIO_ACTIVE_LOW>;
+	max-frequency = <5000000>; /* limit frequency for EMC reasons */
 	status = "okay";
 };
 
