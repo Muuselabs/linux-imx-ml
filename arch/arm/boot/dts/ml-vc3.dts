@@ -298,6 +298,7 @@
 	cd-post; 
 	pm-ignore-notify;
 	wifi-host; /* add hook for SD card detect mechanism for BCMDHD driver */
+	max-frequency = <20000000>; /* BCM43438 supports up to 20MHz SDIO */
 	status = "okay";
 };
 
