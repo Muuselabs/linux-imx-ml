@@ -1,7 +1,7 @@
 /*
  * File:           E:\WORK\Jookibox\资料\dsp\aux_dsp\1761\adau1761_IC_1_REG.h
  *
- * Created:        Friday, August 04, 2017 10:00:51 AM
+ * Created:        Monday, August 14, 2017 10:56:05 AM
  * Description:    Jooki Box V2.6 17-8-4:IC 1 control register definitions.
  *
  * This software is distributed in the hope that it will be useful,
@@ -253,12 +253,12 @@
 /* CRC Ideal_2  - Registers (IC 1) */
 #define REG_CRC_IDEAL_2_IC_1_ADDR                 0x40C1
 #define REG_CRC_IDEAL_2_IC_1_BYTE                 1
-#define REG_CRC_IDEAL_2_IC_1_VALUE                0x30
+#define REG_CRC_IDEAL_2_IC_1_VALUE                0x7F
 
 /* CRC Ideal_3  - Registers (IC 1) */
 #define REG_CRC_IDEAL_3_IC_1_ADDR                 0x40C2
 #define REG_CRC_IDEAL_3_IC_1_BYTE                 1
-#define REG_CRC_IDEAL_3_IC_1_VALUE                0x7F
+#define REG_CRC_IDEAL_3_IC_1_VALUE                0x37
 
 /* CRC Ideal_4  - Registers (IC 1) */
 #define REG_CRC_IDEAL_4_IC_1_ADDR                 0x40C3
@@ -880,12 +880,12 @@
 #define R45_CRC_IDEAL_1_IC_1_SHIFT                0
 
 /* CRC Ideal_2 (IC 1) */
-#define R46_CRC_IDEAL_2_IC_1                      0x30   /* 00110000b	[7:0] */
+#define R46_CRC_IDEAL_2_IC_1                      0x7F   /* 01111111b	[7:0] */
 #define R46_CRC_IDEAL_2_IC_1_MASK                 0xFF
 #define R46_CRC_IDEAL_2_IC_1_SHIFT                0
 
 /* CRC Ideal_3 (IC 1) */
-#define R47_CRC_IDEAL_3_IC_1                      0x7F   /* 01111111b	[7:0] */
+#define R47_CRC_IDEAL_3_IC_1                      0x37   /* 00110111b	[7:0] */
 #define R47_CRC_IDEAL_3_IC_1_MASK                 0xFF
 #define R47_CRC_IDEAL_3_IC_1_SHIFT                0
 
