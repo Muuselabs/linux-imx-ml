@@ -126,17 +126,7 @@
 	};
 	
 	partition@2 {
-		label = "kernel";
-		reg = <0x00400000 0x00800000>;
-	};
-	
-	partition@3 {
-		label = "rootfs";
-		reg = <0x00c00000 0x0D000000>;
-	};
-	
-	partition@4 {
-		label = "datafs";
-		reg = <0x0DC00000 0x12000000>;
+		label = "ubifs";
+		reg = <0x00400000 0x1F000000>;
 	};
 };
