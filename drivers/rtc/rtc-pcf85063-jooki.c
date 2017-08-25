@@ -15,6 +15,7 @@
 #include <linux/bcd.h>
 #include <linux/rtc.h>
 #include <linux/module.h>
+#include <linux/gpio.h>
 
 #define DRV_VERSION "0.0.1"
 
@@ -28,8 +29,16 @@
 #define PCF85063_REG_DW			0x08
 #define PCF85063_REG_MO			0x09
 #define PCF85063_REG_YR			0x0A
+#define PCF85063_REG_SC_ALARM		0x0B /* alarm time */
+#define PCF85063_REG_MN_ALARM	0x0C
+#define PCF85063_REG_HR_ALARM		0x0D
+#define PCF85063_REG_DM_ALARM	0x0E
+#define PCF85063_REG_DW_ALARM	0x0F
+
 
 #define PCF85063_MO_C			0x80 /* century */
+
+#define CLKOUTENPIN 130 /*GPIO5_2*/
 
 static struct i2c_driver pcf85063_driver;
 
@@ -136,7 +145,36 @@ static int pcf85063_set_datetime(struct i2c_client *client, struct rtc_time *tm)
 static int pcf85063_read_alarm(struct device *dev, struct rtc_wkalrm *wa)
 {
 	printk ("in %s \n",__func__);
+	struct rtc_time * tm = &wa->time;
+	
 	struct i2c_client *client = to_i2c_client(dev);
+	unsigned char buf[16] = { PCF85063_REG_CTRL1 };
+	struct i2c_msg msgs[] = {
+		{/* setup read ptr */
+			.addr = client->addr,
+			.len = 1,
+			.buf = buf
+		},
+		{/* read status + date */
+			.addr = client->addr,
+			.flags = I2C_M_RD,
+			.len = 16,
+			.buf = buf
+		},
+	};
+
+	/* read registers */
+	if ((i2c_transfer(client->adapter, msgs, 2)) != 2) {
+		dev_err(&client->dev, "%s: read error\n", __func__);
+		return -EIO;
+	}
+	wa->enabled = ( buf[PCF85063_REG_CTRL2] & 0x80 ) >> 7;
+	wa->pending = ( buf[PCF85063_REG_CTRL2] & 0x40 ) >> 6;
+	tm->tm_sec = bcd2bin(buf[PCF85063_REG_SC_ALARM] & 0x7F);
+	tm->tm_min = bcd2bin(buf[PCF85063_REG_MN_ALARM] & 0x7F);
+	tm->tm_hour = bcd2bin(buf[PCF85063_REG_HR_ALARM] & 0x3F); /* rtc hr 0-23 */
+	tm->tm_mday = bcd2bin(buf[PCF85063_REG_DM_ALARM] & 0x3F);
+	tm->tm_wday = buf[PCF85063_REG_DW_ALARM] & 0x07;
 	
 	return 0;
 }
@@ -145,7 +183,66 @@ static int pcf85063_set_alarm(struct device *dev, struct rtc_wkalrm *wa)
 {
 	printk ("in %s \n",__func__);
 	struct i2c_client *client = to_i2c_client(dev);
+	struct rtc_time * tm = &wa->time;
+	unsigned char data[2];
+	int i = 0, err = 0;
+	unsigned char buf[16] = { PCF85063_REG_CTRL1 };
 
+
+	struct i2c_msg msgs[] = {
+		{/* setup read ptr */
+			.addr = client->addr,
+			.len = 1,
+			.buf = buf
+		},
+		{/* read status + date */
+			.addr = client->addr,
+			.flags = I2C_M_RD,
+			.len = 2,
+			.buf = buf
+		},
+	};
+	/* read registers */
+	if ((i2c_transfer(client->adapter, msgs, 2)) != 2) {
+		dev_err(&client->dev, "%s: read error\n", __func__);
+		return -EIO;
+	}
+	
+	/* Control & status */
+	buf[PCF85063_REG_CTRL2] |= (3 << 6); /* enable alarm interrupt,clean AF flag*/
+
+	/* hours, minutes and seconds */
+	buf[PCF85063_REG_SC_ALARM] = bin2bcd(tm->tm_sec) & 0x7F;
+
+	buf[PCF85063_REG_MN_ALARM] = bin2bcd(tm->tm_min);
+	buf[PCF85063_REG_HR_ALARM] = bin2bcd(tm->tm_hour);
+
+	/* Day of month, 1 - 31 */
+	buf[PCF85063_REG_DM_ALARM] = bin2bcd(tm->tm_mday);
+
+	/* Day, 0 - 6 */
+	buf[PCF85063_REG_DW_ALARM] = tm->tm_wday & 0x07;
+
+	/* write register's data */
+	data[0] = PCF85063_REG_CTRL2;
+	data[1] = buf[PCF85063_REG_CTRL2];
+	
+	err = i2c_master_send(client, data, sizeof(data));
+	if (err != sizeof(data)) {
+			dev_err(&client->dev, "%s: err=%d addr=%02x, data=%02x\n",
+					__func__, err, data[0], data[1]);
+			return -EIO;
+	}
+	for (i = PCF85063_REG_SC_ALARM; i < sizeof(buf); i++) {
+		data[0] = i;
+		data[1] = buf[i];
+		err = i2c_master_send(client, data, sizeof(data));
+		if (err != sizeof(data)) {
+			dev_err(&client->dev, "%s: err=%d addr=%02x, data=%02x\n",
+					__func__, err, data[0], data[1]);
+			return -EIO;
+		}
+	}
 	
 	return 0;
 }
@@ -174,6 +271,7 @@ static int pcf85063_probe(struct i2c_client *client,
 {
 	struct pcf85063 *pcf85063;
 	int err,i;
+	struct gpio_desc *clkouten;
 	dev_dbg(&client->dev, "%s\n", __func__);
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
@@ -195,6 +293,19 @@ static int pcf85063_probe(struct i2c_client *client,
 	unsigned char buf[2] ;
 	err = PTR_ERR_OR_ZERO(pcf85063->rtc);
 	if( err ) return err;
+
+	if( ! gpio_is_valid(CLKOUTENPIN) ) {
+		dev_err(&client->dev, "gpio 130 (GPIO5_2) is no valid\n");
+		return 0;
+	}
+	if( gpio_request(CLKOUTENPIN,"GPIO5_2") ) {
+		dev_err(&client->dev, "gpio 130 (GPIO5_2) request failed\n");
+		return 0;
+	}
+	gpio_direction_output(CLKOUTENPIN,1);  /*GPIO5_2 CLKOUT EN*/
+	//gpiod_direction_output(clkouten, 1);
+	
+	
 
 	return 0;
 }

@@ -122,10 +122,10 @@ static void imx_adau1761_amp_enable(struct imx_adau1761_data *data, int en)
         					// enable the amplifier
 		gpiod_set_value(amp_sd, AMPSDON);
 				
-		mdelay(100);
+		mdelay(200);
 
         	gpiod_set_value(amp_mute, AMPMUTEOFF);
-		mdelay(50);
+		//mdelay(50);
 		
 	} else {
 		ADAU_DBG("turn off amp\n");        
