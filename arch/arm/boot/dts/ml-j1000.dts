@@ -16,7 +16,7 @@
 #include "ml-jooki-common.dtsi"
 
 / {
-	model = "Muuselabs Jooki 2017 VC3";
+	model = "Muuselabs Jooki 2017 (J1000)";
 	
 	// NOTE: the amount of memory can be board-specific
 	memory {
@@ -54,7 +54,7 @@
 };
 
 &iomuxc_snvs {
-	jooki-vc3-dvfs {
+	j1000-dvfs {
 		pinctrl_dvfs: dvfsgrp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 			MX6ULL_PAD_SNVS_TAMPER0__GPIO5_IO00      0x79
@@ -70,7 +70,7 @@
 &iomuxc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_hog_1>;
-	jooki-vc3-hog {
+	j1000-hog {
 		pinctrl_hog_1: hoggrp-1 {
       			/* Note(wdm) Generates error: fsl,pins = <>; */
 		};
@@ -80,7 +80,7 @@
 &iomuxc_snvs {
 	pinctrl-names = "default_snvs";
 	pinctrl-0 = <&pinctrl_hog_2>;
-	jooki-vc3-hog-snvs {
+	j1000-hog-snvs {
 		pinctrl_hog_2: hoggrp-2 {
                 	/* Note(wdm) Generates error: fsl,pins = <>; */
 		};
@@ -91,7 +91,7 @@
 /* Serial interfaces
  */
 &iomuxc {
-	jooki-vc3-peri {
+	j1000-peri {
 		pinctrl_i2c1: i2c1grp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL 0x4001b8b0
@@ -213,7 +213,7 @@
 };
 
 &iomuxc {
-	jooki-vc3-wifi {
+	j1000-wifi {
 		pinctrl_usdhc1: usdhc1grp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 			/*
@@ -271,7 +271,7 @@
 
 
 &iomuxc_snvs {
-	jooki-vc3-wifi-snvs {
+	j1000-wifi-snvs {
 		pinctrl_wifi_snvs: wifigrp-snvs {
 #if defined(WLAN_OOB) || defined(BT_OOB) /* Note(wdm) Avoid empty property */
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
@@ -339,7 +339,7 @@
 };
 
 &iomuxc {
-	jooki-vc3-audio {
+	j1000-audio {
 		pinctrl_sai2: sai2grp {
 			fsl,pins = <
 /*				
@@ -367,8 +367,7 @@
 
 
 &iomuxc_snvs {
-
-	jooki-vc3-audio-snvs {
+	j1000-audio-snvs {
 		pinctrl_sai2_snvs: sai2grp_snvs {
 			fsl,pins = <
 			MX6ULL_PAD_SNVS_TAMPER5__GPIO5_IO05        0x000150A0 // AMP_FAULT/AMP_SD
@@ -464,7 +463,7 @@
 };
 
 &iomuxc {
-	jooki-vc3-keys {
+	j1000-keys {
 		pinctrl_gpio_keys: gpio_keysgrp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 				MX6UL_PAD_ENET1_RX_DATA0__GPIO2_IO00      0x0001B0B0 /* BTN_VOLUP */
@@ -479,7 +478,7 @@
 };
 
 &iomuxc_snvs {
-	imx6ul-evk {
+	j1000-keys-snvs {
 		pinctrl_gpio_keys_snvs: gpio_keysgrp_snvs {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 				MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04        0x0001B0A0 /* BTN_PLAY */
@@ -512,7 +511,7 @@
 };
 
 &iomuxc {
-	jooki-vc3-pwr {
+	j1000-pwr {
 		pinctrl_adc1: adc1grp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 				MX6UL_PAD_GPIO1_IO03__GPIO1_IO03          0x000010B0 /* VBAT_DIV */
@@ -529,7 +528,7 @@
 };
 
 &iomuxc_snvs {
-	jooki-vc3-pwr-snvs {
+	j1000-pwr-snvs {
 		pinctrl_pwr_snvs: gpio_pwr_snvs {
 			/* Note(wdm) Generates error: fsl,pins = <>; */
 		};
@@ -541,7 +540,7 @@
  */
 
 &iomuxc {
-	jooki-vc3-lednfc {
+	j1000-lednfc {
 		pinctrl_led: ledgrp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 				MX6UL_PAD_UART3_RX_DATA__GPIO1_IO25       0x000030B0 /* LED_OFF */
@@ -551,7 +550,7 @@
 };
 
 &iomuxc_snvs {
-	jooki-vc3-lednfc-snvs {
+	j1000-lednfc-snvs {
 		pinctrl_nfc: gpio_nfc_snvs {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 				MX6ULL_PAD_SNVS_TAMPER7__GPIO5_IO07        0x0001B0A0 /* NFC_IRQ_OUT */
@@ -564,7 +563,7 @@
 /* micro-sd card
  */
 &iomuxc {
-	jooki-vc3-usd {
+	j1000-usd {
 		pinctrl_usdhc2: usdhc2grp {
 			fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
 				
