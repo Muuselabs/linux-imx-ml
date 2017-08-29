@@ -11,7 +11,7 @@ cd "$(dirname "$0")"
 set +eu
 DTB_OVERRIDE=$1
 set -eu
-DTB=${DTB_OVERRIDE:-ml-vc3.dtb}
+DTB=${DTB_OVERRIDE:-ml-j1000.dtb}
 echo "Installing with DTB: $DTB"
 
 # Install the modules in the root file-system.

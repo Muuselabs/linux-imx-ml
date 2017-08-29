@@ -17,7 +17,7 @@ cp $INSTALLER $TMP_FS
 set +eu
 DTB_OVERRIDE=$1
 set -eu
-DTB=${DTB_OVERRIDE:-ml-vc3.dtb}
+DTB=${DTB_OVERRIDE:-ml-j1000.dtb}
 echo "Compiling with DTB: $DTB"
 
 # Make paths relative to linux-2.6-imx
