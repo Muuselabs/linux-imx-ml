@@ -387,17 +387,6 @@
 	};
 };
 
-&i2c2 {
-	rtc2: pcf85063@51 {
-		compatible = "nxp,pcf85063";
-		reg = <0x51>;
-	};
-};
-
-
-
-
-
 &sai2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sai2>;
@@ -499,7 +488,12 @@
 	status = "okay";
 };
 
-
+&i2c2 {
+	rtc2: pcf85063@51 {
+		compatible = "nxp,pcf85063";
+		reg = <0x51>;
+	};
+};
 
 &adc1 {
 	
