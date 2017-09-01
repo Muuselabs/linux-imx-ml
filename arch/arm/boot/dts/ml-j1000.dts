@@ -10,6 +10,8 @@
 
 /dts-v1/;
 
+#define DEBUG_UART_ENABLED
+
 #include <dt-bindings/input/input.h>
 #include "imx6ull.dtsi"
 
@@ -370,7 +372,7 @@
 
 /* Keys control */
 / {
-	keys { /* PP: crosschecked sch VC4.0  20170829 TODO: double check */
+	keys { /* PP: crosschecked sch VC4.0  20170829 */
 		compatible = "gpio-keys";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_gpio_keys &pinctrl_gpio_keys_snvs>;
@@ -400,16 +402,18 @@
 			gpios = <&gpio5 4 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_PLAY>;
 		};
+#ifndef DEBUG_UART_ENABLED
 		user6 {
 			label = "Radio on";
-			gpios = <&gpio2 9 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio1 16 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_WPS_BUTTON>;
 		};
 		user7 {
 			label = "Airplane mode";
-			gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio1 17 GPIO_ACTIVE_HIGH>;
 			linux,code = <KEY_OPTION>;
 		};
+#endif
 		/*
 		user8 {
 			label = "test key";
@@ -423,13 +427,15 @@
 &iomuxc {
 	j1000-keys {
 		pinctrl_gpio_keys: gpio_keysgrp {
-			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 TODO: double check */
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
 				MX6UL_PAD_ENET1_RX_DATA0__GPIO2_IO00      0x0001B0B0 /* BTN_VOLUP */
 				MX6UL_PAD_ENET1_RX_DATA1__GPIO2_IO01      0x0001B0B0 /* BTN_VOLDN */
 				MX6UL_PAD_ENET1_RX_EN__GPIO2_IO02         0x0001B0B0 /* BTN_PREV  */
 				MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30       0x0001B0B0 /* BTN_NEXT  */
-				MX6UL_PAD_ENET2_RX_DATA0__GPIO2_IO08      0x0001B0B0 /* BTN_AIR   */
-				MX6UL_PAD_ENET2_RX_DATA1__GPIO2_IO09      0x0001B0B0 /* BTN_RADIO */
+#ifndef DEBUG_UART_ENABLED
+				MX6UL_PAD_UART1_RX_DATA__GPIO1_IO17       0x0001B0B0 /* BTN_AIR   */
+				MX6UL_PAD_UART1_TX_DATA__GPIO1_IO16       0x0001B0B0 /* BTN_RADIO */
+#endif
 			>;
 		};
 	};
@@ -438,7 +444,7 @@
 &iomuxc_snvs {
 	j1000-keys-snvs {
 		pinctrl_gpio_keys_snvs: gpio_keysgrp_snvs {
-			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 TODO: double check */
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
 				MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04        0x0001B0A0 /* BTN_PLAY */
 			>;
 		};
@@ -552,4 +558,3 @@
 	max-frequency = <5000000>; /* limit frequency for EMC reasons */
 	status = "okay";
 };
-

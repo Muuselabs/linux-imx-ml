@@ -15,9 +15,11 @@
 	model = "Muuselabs Jooki 2017 base";
 	compatible = "mlabs,jooki", "fsl,imx6ull";
 	
+#ifdef DEBUG_UART_ENABLED
 	chosen {
 		stdout-path = &uart1;
 	};
+#endif
 	
 	// TODO (PP): check how this interacts with u-boot CMA parameter
 	reserved-memory {
@@ -69,11 +71,13 @@
 	};
 };
 
+#ifdef DEBUG_UART_ENABLED
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
 	status = "okay";
 };
+#endif
 
 /* Watchdog
  * The the software reset functionality is implemented by the watchdog
