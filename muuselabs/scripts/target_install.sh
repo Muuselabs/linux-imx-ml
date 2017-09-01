@@ -17,9 +17,12 @@ echo "Installing with DTB: $DTB"
 # Install the modules in the root file-system.
 tar xzf lib.tgz -C /
 
-flash_erase  /dev/mtd2 0 0
-nandwrite -p /dev/mtd2             ./zImage
-nandwrite -p /dev/mtd2 -s 0x7e0000 ./${DTB}
+cp ./zImage /boot/zImage
+cp ./${DTB} /boot/${DTB}
+
+#flash_erase  /dev/mtd2 0 0
+#nandwrite -p /dev/mtd2             ./zImage
+#nandwrite -p /dev/mtd2 -s 0x7e0000 ./${DTB}
 sync
 
 printf "Press any key to reboot..."
