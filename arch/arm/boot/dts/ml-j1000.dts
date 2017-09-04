@@ -402,18 +402,16 @@
 			gpios = <&gpio5 4 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_PLAY>;
 		};
-#ifndef DEBUG_UART_ENABLED
 		user6 {
 			label = "Radio on";
-			gpios = <&gpio1 16 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio1 18 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_WPS_BUTTON>;
 		};
 		user7 {
 			label = "Airplane mode";
-			gpios = <&gpio1 17 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio1 19 GPIO_ACTIVE_HIGH>;
 			linux,code = <KEY_OPTION>;
 		};
-#endif
 		/*
 		user8 {
 			label = "test key";
@@ -432,10 +430,8 @@
 				MX6UL_PAD_ENET1_RX_DATA1__GPIO2_IO01      0x0001B0B0 /* BTN_VOLDN */
 				MX6UL_PAD_ENET1_RX_EN__GPIO2_IO02         0x0001B0B0 /* BTN_PREV  */
 				MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30       0x0001B0B0 /* BTN_NEXT  */
-#ifndef DEBUG_UART_ENABLED
-				MX6UL_PAD_UART1_RX_DATA__GPIO1_IO17       0x0001B0B0 /* BTN_AIR   */
-				MX6UL_PAD_UART1_TX_DATA__GPIO1_IO16       0x0001B0B0 /* BTN_RADIO */
-#endif
+				MX6UL_PAD_UART1_CTS_B__GPIO1_IO18         0x000100B0 /* BTN_RADIO   */
+				MX6UL_PAD_UART1_RTS_B__GPIO1_IO19         0x000100B0 /* BTN_AIR */
 			>;
 		};
 	};
