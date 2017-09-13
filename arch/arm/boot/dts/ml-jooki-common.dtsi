@@ -131,11 +131,11 @@
 	
 	partition@2 {
 		label = "ubifs";
-		reg = <0x00300000 0x0FD00000>;
+		reg = <0x00300000 0x19000000>;
 	};
 	
 	partition@3 {
 		label = "usrdata";
-		reg = <0x10000000 0x10000000>;
+		reg = <0x19300000 0x06D00000>;
 	};
 };
