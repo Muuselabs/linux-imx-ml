@@ -83,4 +83,13 @@ ADI_REG_TYPE MIC_BIAS[2][1] ={
 	{0x0D},		/*enable*/
 	{0x0C},		/*disanble*/
 };
+
+/* Register Default - IC 1.Clock Control Register */
+ADI_REG_TYPE CLK_PLL[1] = {
+0x0F    /*PLL 1024*/
+};
+ADI_REG_TYPE DAC_CHAIN[1] = {
+0x00  
+};
+/*0 db*/
 #endif

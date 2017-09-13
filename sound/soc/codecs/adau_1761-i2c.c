@@ -750,7 +750,8 @@ int SIGMA_WRITE_REGISTER_BLOCK(unsigned int IC_addr,unsigned int addr,  size_t l
 {
 	int ret ;
 	ret = sigmadsp_write_i2c(local_client,addr, len, data);
-	if( ret < 0 ) ADAU_DBG(" dsp write failed !!\n");
+	if( ret < 0 ) printk(" dsp write failed !!\n");
+	
  	return ret;
 }
 int SIGMA_WRITE_DELAY(unsigned int IC_addr, size_t len,const uint8_t data[] )
@@ -817,11 +818,18 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 		};break;
 		case USERCOMMAND_MUTELOUT: {
 			ADAU_DBG("mute lineout");
+			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
+			sigmadsp_write_i2c(local_client,0x402B, 1,DAC_CHAIN);
+			sigmadsp_write_i2c(local_client,0x402C, 1,DAC_CHAIN);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut_L[0]);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut_R[0]);
+			
 		};break;
 		case USERCOMMAND_UNMUTELOUT: {
 			ADAU_DBG("unmute lineout");
+			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
+			sigmadsp_write_i2c(local_client,0x402B, 1,DAC_CHAIN);
+			sigmadsp_write_i2c(local_client,0x402C, 1,DAC_CHAIN);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut_L[1]);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut_R[1]);
 		};break;
@@ -863,6 +871,9 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 			msleep(100);
 			ADAU_DBG("init codec");
 			default_download_IC_1();
+			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
+			sigmadsp_write_i2c(local_client,0x402B, 1,DAC_CHAIN);
+			sigmadsp_write_i2c(local_client,0x402C, 1,DAC_CHAIN);
 		};break;
 		
 		case USERCOMMAND_MICBIASEN: {
