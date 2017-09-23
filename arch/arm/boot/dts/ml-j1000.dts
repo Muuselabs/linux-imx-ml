@@ -289,6 +289,14 @@
 	status = "okay";
 };
 
+/ {
+	bt_rfkill {
+		compatible = "net,rfkill-gpio";
+		name = "bt_rfkill";
+		type = <2>; /* bluetooth */
+		gpios = <&gpio1 5 0>; /* BT enable */
+	};
+};
 
 /* Audio section */
 / {
