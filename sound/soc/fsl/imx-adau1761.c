@@ -66,10 +66,17 @@ struct imx_adau1761_data {
 	int stream; /*0:playback 1:capture*/
 	struct work_struct adauwq;
 };
+
 static int imx_adau1761_init(struct snd_soc_pcm_runtime *rtd);
 static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
                                        struct snd_pcm_hw_params *params);
 static void imx_hifi_shutdown(struct snd_pcm_substream *substream);
+
+// this hack is in place because currently there is something wrong in the 48kHz playback mode
+#define RATE_CONSTRAIN_HACK
+#ifdef RATE_CONSTRAIN_HACK
+static int imx_hifi_startup(struct snd_pcm_substream *substream);
+#endif
 
 struct imx_priv {
 	struct platform_device *pdev;
@@ -79,6 +86,9 @@ struct imx_priv {
 static struct imx_priv adau_priv;
 
 static struct snd_soc_ops imx_hifi_ops = {
+#ifdef RATE_CONSTRAIN_HACK
+	.startup   = imx_hifi_startup,
+#endif
 	.shutdown	= imx_hifi_shutdown,
 	.hw_params	= imx_hifi_hw_params_slv_mode,
 };
@@ -369,6 +379,23 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	ADAU_DBG(" out imx_hifi_hw_params_slv_mode\n");
 	return 0;
 }
+
+#ifdef RATE_CONSTRAIN_HACK
+static u32 imx_adau1761_rates[] = { 44100 };
+static struct snd_pcm_hw_constraint_list imx_adau1761_rate_constraints = {
+	.count = ARRAY_SIZE(imx_adau1761_rates),
+	.list = imx_adau1761_rates,
+};
+
+static int imx_hifi_startup(struct snd_pcm_substream *substream)
+{
+
+	int ret;
+	ret = snd_pcm_hw_constraint_list(substream->runtime, 0,
+																	 SNDRV_PCM_HW_PARAM_RATE, &imx_adau1761_rate_constraints);
+		return ret;
+}
+#endif
 
 static void imx_hifi_shutdown(struct snd_pcm_substream *substream)
 {
