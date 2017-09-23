@@ -630,7 +630,7 @@ irqreturn_t jeck_handler(int sig,void * data)
 
 }
 
-void workquerehandler(void *data)
+void workquerehandler(struct work_struct *data)
 {
 	if( adau_priv.info->jecksetenable ) {
 
