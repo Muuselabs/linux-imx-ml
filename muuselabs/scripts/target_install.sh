@@ -27,4 +27,4 @@ sync
 
 printf "Press any key to reboot..."
 read dummy
-shutdown -r now
+/sbin/shutdown -r now
