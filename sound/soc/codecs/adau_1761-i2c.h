@@ -4,6 +4,7 @@
 #include <linux/regmap.h>
 #include "adau17x1.h"
 
+
 #define USERCOMMAND 0x11
 #define USERCOMMAND_MUTELOUT 0x12
 #define USERCOMMAND_UNMUTELOUT 0x13
@@ -16,6 +17,8 @@
 #define USERCOMMAND_INIT 0x20
 #define USERCOMMAND_MICBIASEN 0x21
 #define USERCOMMAND_MICBIASDISEN 0x22
+#define USERCOMMAND_MODESWITCH 0x23
+
 
 #define ADAU1761_DIGMIC_JACKDETECT	0x4008
 #define ADAU1761_REC_MIXER_LEFT0	0x400a
@@ -58,7 +61,7 @@
 
 #undef USE_17X1_OPS
 
-//#define _ADAU_DBG
+#define _ADAU_DBG
 
 #ifdef _ADAU_DBG
 #define  ADAU_DBG(format, ...) printk("[ADAU] " format, ## __VA_ARGS__)

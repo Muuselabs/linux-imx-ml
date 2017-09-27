@@ -30,6 +30,7 @@
 
 
 #include "../codecs/adau_1761-i2c.h"
+
 #include "imx-audmux.h"
 #include "imx-ssi.h"
 
@@ -37,11 +38,21 @@
 #define AMPMUTEON 0
 #define AMPBOOSTENON 1
 #define AMPBOOSTENOFF 0
-#define AMPSDON 0
-#define AMPSDOFF 1
+
+
+#define FOR_JOOKI_MP
+
+#define AMPSDON 1
+#define AMPSDOFF 0
+
 
 #define DAI_NAME_SIZE	32
 #define AMP_PIN_NUMBER 4
+
+#define TOY_SAVETY_MODE  	0x01B5
+#define NORMAL_MODE        	0x01B6
+#define HEADHPONE_MODE      0x01B7
+
 
 struct imx_adau1761_data {
 	struct snd_soc_dai_link dai;
@@ -61,7 +72,8 @@ struct imx_adau1761_data {
 	unsigned int ext_port;
 	int jeckdetirq; 
 	int irqenable;  /*0:disenble 1:endable*/
-	int jecksetenable;/*0:out 1:in*/
+	int jecksetenable;/*0:AMP out 1: Headphone out*/
+	int dspmode; /*0:normal mode  1:toy safety mode*/
 	int playstatus; /*-1:init_statu  0:not playing 1: playing*/
 	int stream; /*0:playback 1:capture*/
 	struct work_struct adauwq;
@@ -363,8 +375,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 #endif
 	if( substream->stream == SNDRV_PCM_STREAM_PLAYBACK ) {
 		if( data->jecksetenable == CODEC_OUTPUT_LINEOUT && data->playstatus != -1)
-			//gpiod_direction_output(data->gpios[0], 1);  /*enable amp out*/
-			imx_adau1761_amp_enable(data, 1);
+			imx_adau1761_amp_enable(data, 1); /*enable amp out*/
 	} else {
 		snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_MICBIASEN, 0, 0); /*mute Local MIC*/
 		if( data->jecksetenable == CODEC_OUTPUT_HEADPHONE ) {
@@ -419,6 +430,7 @@ static void imx_hifi_shutdown(struct snd_pcm_substream *substream)
 		}
 	}
 	data->playstatus = 0;
+	//snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_DISABLEPLL, 0, 0); /*Disable DSP PLL*/
 	return;
 }
 
@@ -524,7 +536,17 @@ int snd_pcm_info_volsw(struct snd_kcontrol *kcontrol,
 	uinfo->value.integer.max = 100;				//the info of max value
 	return	0;
 }
+int snd_switch_info_volsw(struct snd_kcontrol *kcontrol,
+		struct	snd_ctl_elem_info	*uinfo)
+{
 
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
+
+	uinfo->count = 1;	//the info of elem count
+	uinfo->value.integer.min = 0;				//the info of min value
+	uinfo->value.integer.max = 1;				//the info of max value
+	return	0;
+}
 int snd_pcm_get_volsw(struct snd_kcontrol	*kcontrol,
 		struct	snd_ctl_elem_value	*ucontrol)
 {
@@ -534,7 +556,15 @@ int snd_pcm_get_volsw(struct snd_kcontrol	*kcontrol,
 
 	return 0;
 }
+int snd_switch_get_volsw(struct snd_kcontrol	*kcontrol,
+		struct	snd_ctl_elem_value	*ucontrol)
+{
 
+	ucontrol->value.integer.value[0] = adau_priv.info->dspmode;	
+	ucontrol->value.integer.value[1] =0;
+
+	return 0;
+}
 int snd_pcm_put_volsw(struct snd_kcontrol	*kcontrol,
 		struct	snd_ctl_elem_value	*ucontrol)
 {
@@ -566,15 +596,43 @@ int snd_amp_put_volsw(struct snd_kcontrol	*kcontrol,
 			enable_irq(adau_priv.info->jeckdetirq);
 			adau_priv.info->irqenable = 1;
 	}
-	/*
-	if (tmp == 100 ) {
-		//gpiod_direction_output(adau_priv.info->gpios[0], 1);
-		imx_adau1761_amp_enable(adau_priv.info, 1);
+
+	return 0;
+}	
+
+int snd_switch_put_volsw(struct snd_kcontrol	*kcontrol,
+		struct	snd_ctl_elem_value	*ucontrol)
+{
+	unsigned int tmp ,ret;
+	if( adau_priv.info->jecksetenable ) return -1;
+	
+	tmp = ucontrol->value.integer.value[0];
+	if(tmp >1 || tmp <0) return -1;
+	
+	if( tmp != 0 ) {
+		ret = snd_soc_dai_set_tdm_slot(
+			adau_priv.info->card.rtd->codec_dai,
+			USERCOMMAND, USERCOMMAND_MODESWITCH,
+			TOY_SAVETY_MODE, 0); /*enable toy safety*/
+		if ( ret < 0 ) {
+		pr_err("Failed to set snd_soc_dai_set_tdm_slot  %d\n", ret);
+	
+		return ret;
 		}
-	else if( tmp == 0 ) {
-		//gpiod_direction_output(adau_priv.info->gpios[0], 0);
-		imx_adau1761_amp_enable(adau_priv.info, 0);
-		}*/
+		adau_priv.info->dspmode = 1;
+	} else {
+		
+		ret = snd_soc_dai_set_tdm_slot(
+			adau_priv.info->card.rtd->codec_dai, 
+			USERCOMMAND, USERCOMMAND_MODESWITCH,
+			NORMAL_MODE, 0); /*disable toy safety*/
+		if ( ret < 0 ) {
+		pr_err("Failed to set snd_soc_dai_set_tdm_slot  %d\n", ret);
+	
+		return ret;
+		}
+		adau_priv.info->dspmode = 0;
+	}
 	return 0;
 }	
 
@@ -600,6 +658,15 @@ static const struct snd_kcontrol_new mastervolume_controls[] = {
 		.put	= snd_amp_put_volsw,
 		.private_value	= 1,
 	},
+	{
+		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
+		//.name = "Master Playback Volume" ,
+		.name = "DSPTOYSAVETY" ,
+		.info	= snd_switch_info_volsw,
+		.get=snd_switch_get_volsw,
+		.put	= snd_switch_put_volsw,
+		.private_value	= 1,
+	},
 	
 };
 
@@ -620,10 +687,8 @@ irqreturn_t jeck_handler(int sig,void * data)
 			imx_adau1761_amp_enable(data, value ? 0:1);
 			
        	 }
-		mdelay(100);
+		//mdelay(100);
 		schedule_work(&adaudata->adauwq);
-		
-		
 	}
 	enable_irq(sig);
 	return IRQ_HANDLED;
@@ -634,16 +699,36 @@ void workquerehandler(struct work_struct *data)
 {
 	if( adau_priv.info->jecksetenable ) {
 
-		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_MUTELOUT, 0, 0); /*mute Lineout*/
-		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_UNMUTEHP, 0, 0); /*unmute headphone*/
-		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_MUTELMIC, 0, 0); /*mute Local MIC*/
-		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_UNMUTEHPMIC, 0, 0); /*unmute  headphone MIC*/
+		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
+		 	USERCOMMAND, USERCOMMAND_MUTELOUT, 0, 0); /*mute Lineout*/
+		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, 
+		 	USERCOMMAND, USERCOMMAND_UNMUTEHP, 0, 0); /*unmute headphone*/
+		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, 
+		 	USERCOMMAND, USERCOMMAND_MUTELMIC, 0, 0); /*mute Local MIC*/
+		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
+		 	USERCOMMAND, USERCOMMAND_UNMUTEHPMIC, 0, 0); /*unmute  headphone MIC*/
+		 snd_soc_dai_set_tdm_slot(
+		 	adau_priv.info->card.rtd->codec_dai, 
+		 	USERCOMMAND, USERCOMMAND_MODESWITCH,
+		 	HEADHPONE_MODE, 0); /*switch to headphone mode*/
+		 
 	} else {
+		if(adau_priv.info->dspmode >= 0 && adau_priv.info->dspmode < 2)
+		snd_soc_dai_set_tdm_slot(
+			adau_priv.info->card.rtd->codec_dai, 
+		 	USERCOMMAND, USERCOMMAND_MODESWITCH, 
+		 	adau_priv.info->dspmode ==1 ?  TOY_SAVETY_MODE : NORMAL_MODE , 
+		 	0); /*out headphone mode*/
+		
+		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
+			USERCOMMAND, USERCOMMAND_UNMUTELOUT, 0, 0); /*unmute Lineout*/
+		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
+			USERCOMMAND, USERCOMMAND_MUTEHP, 0, 0); /*mute headphone*/
+		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
+			USERCOMMAND, USERCOMMAND_UNMUTELMIC, 0, 0); /*unmute Local MIC */
+		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
+			USERCOMMAND, USERCOMMAND_MUTEHPMIC, 0, 0); /*mute headphone MIC*/
 
-		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_UNMUTELOUT, 0, 0); /*unmute Lineout*/
-		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_MUTEHP, 0, 0); /*mute headphone*/
-		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_UNMUTELMIC, 0, 0); /*unmute Local MIC */
-		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND_MUTEHPMIC, 0, 0); /*mute headphone MIC*/
 
 	}
 }
@@ -766,6 +851,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	data->jeckdetirq = -1;
 	data->jecksetenable = -1;
 	data->playstatus =-1;
+	data->dspmode =1;
 	if ( jeck_detect )
 	{
         int irqno;
@@ -812,8 +898,9 @@ fail:
 static int imx_adau1761_remove(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
-	snd_soc_unregister_card(card);
 
+	snd_soc_unregister_card(card);
+	//gpiod_direction_input(adau_priv.info->gpios[1]);
 	return 0;
 }
 
