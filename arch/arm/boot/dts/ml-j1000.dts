@@ -308,8 +308,8 @@
 		cpu-dai = <&sai2>;
 		audio-codec = <&codec2>;
 		/* PP: crosschecked sch VC4.0  20170829 */
-		amp-gpios=	<&gpio5 9 GPIO_ACTIVE_HIGH>, /*Amp MUTE*/
-		<&gpio1 2 GPIO_ACTIVE_HIGH>, /*Amp SD*/
+		amp-gpios=	<&gpio1 2 GPIO_ACTIVE_HIGH>, /*Amp MUTE*/
+		<&gpio5 9 GPIO_ACTIVE_HIGH>, /*Amp SD*/
 		<&gpio1 31 GPIO_ACTIVE_HIGH>; /*Boost EN*/
 		jeckdetect-gpios = 	<&gpio2 10 GPIO_ACTIVE_HIGH>; /*Jeck DET*/
 		
