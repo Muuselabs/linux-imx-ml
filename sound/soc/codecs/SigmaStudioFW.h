@@ -91,5 +91,19 @@ ADI_REG_TYPE CLK_PLL[1] = {
 ADI_REG_TYPE DAC_CHAIN[1] = {
 0x00  
 };
+
+/* Register Default - IC 1.PLL Control Register  Disable PLL CLK*/
+ADI_REG_TYPE DISABLEPLL[2][6] = {
+{0x00, 0x01, 0x00, 0x00, 0x20, 0x02}, 			/*Disable PLL*/
+{0x00, 0x01, 0x00, 0x00, 0x20, 0x03}			/*enable PLL*/
+};
+
 /*0 db*/
+#define TOY_SAVETY_MODE  	0x01B5
+#define NORMAL_MODE        	0x01B6
+#define HEADHPONE_MODE      0x01B7
+
+const unsigned char MODESWITCHON[4]={0x00,0x80,0x00,0x00};
+const unsigned char MODESWITCHOFF[4]={0x00,0x00,0x00,0x00};
+
 #endif

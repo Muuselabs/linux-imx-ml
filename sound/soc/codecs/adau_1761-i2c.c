@@ -759,7 +759,7 @@ int SIGMA_WRITE_DELAY(unsigned int IC_addr, size_t len,const uint8_t data[] )
 	mdelay(10);
 	return 0;
 }
-static int initflag=1;
+
 static int adau1761_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
 {
@@ -784,18 +784,7 @@ static int adau1761_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {	
 	ADAU_DBG(" in %s %s\n",__func__,substream->stream == SNDRV_PCM_STREAM_CAPTURE ? "Capture":"Playback");
-	if(initflag) {
-		initflag =0;
-	}
-#if 0	
-	if ( substream->stream == SNDRV_PCM_STREAM_CAPTURE ) {
-		sigmadsp_write_i2c(local_client,0x400B,1,MIC_MIXER[1]);
-		sigmadsp_write_i2c(local_client,0x400D,1,MIC_MIXER[1]);
-		sigmadsp_write_i2c(local_client,0x400E,1,MIC_VOLUME_CTL_L[1]);
-		sigmadsp_write_i2c(local_client,0x400F,1,MIC_VOLUME_CTL_R[1]);
-	}
-#endif
-	//msleep(100);
+
 	return 0;
 }
 static int adau1761_set_dai_pll(struct snd_soc_dai *dai, int pll_id,
@@ -810,7 +799,10 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 	ADAU_DBG(" in %s : tx:%x rx:%x :",__func__,tx_mask,rx_mask);
 
 	if( tx_mask == USERCOMMAND ) {
+		
 		switch (rx_mask) {
+
+
 		case USERCOMMAND: {
 			ADAU_DBG("volume set ");
 			sigmadsp_write_i2c(local_client,0x0010,4,DSP_Volume[slots]);
@@ -868,7 +860,10 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 		};break;
 
 		case USERCOMMAND_INIT: {
-			msleep(100);
+			sigmadsp_write_i2c(local_client,0x4002,6,DISABLEPLL[0]); /*disable pll*/
+			msleep(50);
+			sigmadsp_write_i2c(local_client,0x4002,6,DISABLEPLL[1]); /*enable pll*/
+			msleep(50);
 			ADAU_DBG("init codec");
 			default_download_IC_1();
 			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
@@ -887,11 +882,37 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 			sigmadsp_write_i2c(local_client,0x4010,1,MIC_BIAS[1]);
 
 		};break;
+		case USERCOMMAND_MODESWITCH: {
+			ADAU_DBG("mode switch ");
+			switch(slots){
+			case TOY_SAVETY_MODE: {
+				ADAU_DBG(" toy safety mode\n");
+				sigmadsp_write_i2c(local_client,TOY_SAVETY_MODE , 4 , MODESWITCHON);
+				sigmadsp_write_i2c(local_client,NORMAL_MODE , 4  , MODESWITCHOFF);
+				sigmadsp_write_i2c(local_client,HEADHPONE_MODE , 4  , MODESWITCHOFF);
+
+			} ;break;
+			case NORMAL_MODE: {
+				ADAU_DBG(" normal mode\n");
+				sigmadsp_write_i2c(local_client,TOY_SAVETY_MODE , 4 , MODESWITCHOFF);
+				sigmadsp_write_i2c(local_client,NORMAL_MODE , 4  , MODESWITCHON);
+				sigmadsp_write_i2c(local_client,HEADHPONE_MODE , 4  , MODESWITCHOFF);
+			};break;
+			case HEADHPONE_MODE:{ 		
+				ADAU_DBG(" headphone mode\n");
+				sigmadsp_write_i2c(local_client,TOY_SAVETY_MODE , 4 , MODESWITCHOFF);
+				sigmadsp_write_i2c(local_client,NORMAL_MODE , 4  , MODESWITCHOFF);
+				sigmadsp_write_i2c(local_client,HEADHPONE_MODE , 4  , MODESWITCHON);
+			};break;
+
+			}
+		};break;
+
 		default:
 			ADAU_DBG("unknow command");
 			break;
 		}
-
+		
 	}
 	ADAU_DBG("\n");
 	
