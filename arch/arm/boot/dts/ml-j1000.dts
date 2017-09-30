@@ -311,7 +311,7 @@
 		amp-gpios=	
 #ifdef ML_BOARD_JOOKI_VP1
 		<&gpio5 9 GPIO_ACTIVE_HIGH>, /*Amp MUTE*/
-		<&gpio1 2 GPIO_ACTIVE_HIGH>, /*Amp SD*/
+		<&gpio1 2 GPIO_ACTIVE_LOW>,  /*Amp SD*/
 #else
 		<&gpio1 2 GPIO_ACTIVE_HIGH>, /*Amp MUTE*/
 		<&gpio5 9 GPIO_ACTIVE_HIGH>, /*Amp SD*/
