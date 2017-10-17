@@ -653,14 +653,7 @@ irqreturn_t jeck_handler(int sig,void * data)
 	
 	if(adaudata->jecksetenable != value ) {
 		adaudata->jecksetenable = value;
-		if( adau_priv.info->playstatus == 1 && adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
-        	{
-			//gpiod_direction_output(adau_priv.info->gpios[0], value ? 0:1); /*value=1:mute amp out; value=0:unmute amp out*/	
-			//imx_adau1761_amp_enable(adau_priv.info, );
-			imx_adau1761_amp_enable(data, value ? 0:1);
-			
-       	 }
-		//mdelay(100);
+		mdelay(5);
 		schedule_work(&adaudata->adauwq);
 	}
 	enable_irq(sig);
@@ -670,6 +663,10 @@ irqreturn_t jeck_handler(int sig,void * data)
 
 void workquerehandler(void *data)
 {
+	if( adau_priv.info->playstatus == 1 && \
+		adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
+		imx_adau1761_amp_enable(adau_priv.info, adau_priv.info->jecksetenable ? 0:1);
+
 	if( adau_priv.info->jecksetenable ) {
 
 		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
@@ -704,6 +701,8 @@ void workquerehandler(void *data)
 
 
 	}
+
+
 }
 
 static int imx_adau1761_probe(struct platform_device *pdev)
