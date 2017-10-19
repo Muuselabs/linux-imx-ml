@@ -903,6 +903,35 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 				sigmadsp_write_i2c(local_client,TOY_SAVETY_MODE , 4 , MODESWITCHOFF);
 				sigmadsp_write_i2c(local_client,NORMAL_MODE , 4  , MODESWITCHOFF);
 				sigmadsp_write_i2c(local_client,HEADHPONE_MODE , 4  , MODESWITCHON);
+				if(slot_width == TOY_SAVETY_MODE ) {
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR11 , 4 , 
+						hp_gain_targit[HP_GAIN_TOYSAFTY]);
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR12 , 8 , 
+						hp_gain_alpha[HP_GAIN_TOYSAFTY]);
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR21 , 4 , 
+						hp_gain_targit[HP_GAIN_TOYSAFTY]);
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR22 , 8 , 
+						hp_gain_alpha[HP_GAIN_TOYSAFTY]);
+					
+				} else {
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR11 , 4 , 
+						hp_gain_targit[HP_GAIN_NORMAL]);
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR12 , 8 , 
+						hp_gain_alpha[HP_GAIN_NORMAL]);
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR21 , 4 , 
+						hp_gain_targit[HP_GAIN_NORMAL]);
+					sigmadsp_write_i2c(local_client,
+						HP_VOLME_ADDR22 , 8 , 
+						hp_gain_alpha[HP_GAIN_NORMAL]);
+				}
+	
 			};break;
 
 			}

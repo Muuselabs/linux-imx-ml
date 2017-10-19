@@ -49,9 +49,9 @@
 #define DAI_NAME_SIZE	32
 #define AMP_PIN_NUMBER 4
 
-#define TOY_SAVETY_MODE  	0x01B5
-#define NORMAL_MODE        	0x01B6
-#define HEADHPONE_MODE      0x01B7
+#define TOY_SAVETY_MODE  	0x01A6
+#define NORMAL_MODE        	0x01A7
+#define HEADHPONE_MODE      0x01A8
 
 
 struct imx_adau1761_data {
@@ -577,41 +577,43 @@ int snd_switch_put_volsw(struct snd_kcontrol	*kcontrol,
 		struct	snd_ctl_elem_value	*ucontrol)
 {
 	unsigned int tmp ,ret;
-	if( adau_priv.info->jecksetenable ) return -1;
+	
 	
 	tmp = ucontrol->value.integer.value[0];
 	if(tmp >1 || tmp <0) return -1;
+	if( tmp != 0 ) adau_priv.info->dspmode = 1;
+	else adau_priv.info->dspmode = 0;
 	
-	if( tmp != 0 ) {
+	
+	if( adau_priv.info->jecksetenable ) {
+
+		ret = snd_soc_dai_set_tdm_slot(
+		 	adau_priv.info->card.rtd->codec_dai, 
+		 	USERCOMMAND, USERCOMMAND_MODESWITCH,
+		 	HEADHPONE_MODE, adau_priv.info->dspmode ==1 ?  TOY_SAVETY_MODE : NORMAL_MODE); /*switch to headphone mode*/
+		if ( ret < 0 ) {
+			pr_err("Failed to set snd_soc_dai_set_tdm_slot  %d\n", ret);
+	
+			return ret;
+		}
+	} else  {
+	
 		ret = snd_soc_dai_set_tdm_slot(
 			adau_priv.info->card.rtd->codec_dai,
 			USERCOMMAND, USERCOMMAND_MODESWITCH,
-			TOY_SAVETY_MODE, 0); /*enable toy safety*/
+			adau_priv.info->dspmode ==1 ?  TOY_SAVETY_MODE : NORMAL_MODE, 0); /*enable toy safety*/
 		if ( ret < 0 ) {
-		pr_err("Failed to set snd_soc_dai_set_tdm_slot  %d\n", ret);
+			pr_err("Failed to set snd_soc_dai_set_tdm_slot  %d\n", ret);
 	
-		return ret;
+			return ret;
 		}
-		adau_priv.info->dspmode = 1;
-	} else {
-		
-		ret = snd_soc_dai_set_tdm_slot(
-			adau_priv.info->card.rtd->codec_dai, 
-			USERCOMMAND, USERCOMMAND_MODESWITCH,
-			NORMAL_MODE, 0); /*disable toy safety*/
-		if ( ret < 0 ) {
-		pr_err("Failed to set snd_soc_dai_set_tdm_slot  %d\n", ret);
-	
-		return ret;
-		}
-		adau_priv.info->dspmode = 0;
-	}
+	} 
 	return 0;
 }	
 
 
 static const struct snd_kcontrol_new mastervolume_controls[] = {
-#if 1
+#if 0
 	{
 		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
 		//.name = "Master Playback Volume" ,
@@ -680,7 +682,7 @@ void workquerehandler(void *data)
 		 snd_soc_dai_set_tdm_slot(
 		 	adau_priv.info->card.rtd->codec_dai, 
 		 	USERCOMMAND, USERCOMMAND_MODESWITCH,
-		 	HEADHPONE_MODE, 0); /*switch to headphone mode*/
+		 	HEADHPONE_MODE, adau_priv.info->dspmode ==1 ?  TOY_SAVETY_MODE : NORMAL_MODE); /*switch to headphone mode*/
 		 
 	} else {
 		if(adau_priv.info->dspmode >= 0 && adau_priv.info->dspmode < 2)

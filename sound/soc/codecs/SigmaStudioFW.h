@@ -99,11 +99,30 @@ ADI_REG_TYPE DISABLEPLL[2][6] = {
 };
 
 /*0 db*/
-#define TOY_SAVETY_MODE  	0x01B5
-#define NORMAL_MODE        	0x01B6
-#define HEADHPONE_MODE      0x01B7
+#define TOY_SAVETY_MODE  	0x01A6
+#define NORMAL_MODE        	0x01A7
+#define HEADHPONE_MODE      0x01A8
 
 const unsigned char MODESWITCHON[4]={0x00,0x80,0x00,0x00};
 const unsigned char MODESWITCHOFF[4]={0x00,0x00,0x00,0x00};
+
+
+#define HP_VOLME_ADDR11 0x0018
+#define HP_VOLME_ADDR12 0x1FFC
+#define HP_VOLME_ADDR21 0x001B
+#define HP_VOLME_ADDR22 0x1FFE
+
+#define HP_GAIN_TOYSAFTY 1
+#define HP_GAIN_NORMAL 0
+
+ADI_REG_TYPE hp_gain_targit[2][4] = {
+{0x00, 0x39 , 0x2C, 0xEE},			/*-7db*/
+{0x00, 0x0E , 0x5C, 0xA1}			/*-19db*/
+};
+
+ADI_REG_TYPE hp_gain_alpha[2][8] = {
+{0x00, 0x7F , 0xF2, 0x59, 0x00, 0x00, 0x0D, 0xA7}, 			/*-7db*/
+{0x00, 0x7F , 0xF2, 0x59, 0x00, 0x00, 0x0D, 0xA7}			/*-19db*/
+};
 
 #endif
