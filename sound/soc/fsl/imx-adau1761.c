@@ -78,17 +78,10 @@ struct imx_adau1761_data {
 	int stream; /*0:playback 1:capture*/
 	struct work_struct adauwq;
 };
-
 static int imx_adau1761_init(struct snd_soc_pcm_runtime *rtd);
 static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
                                        struct snd_pcm_hw_params *params);
 static void imx_hifi_shutdown(struct snd_pcm_substream *substream);
-
-// this hack is in place because currently there is something wrong in the 48kHz playback mode
-#define RATE_CONSTRAIN_HACK
-#ifdef RATE_CONSTRAIN_HACK
-static int imx_hifi_startup(struct snd_pcm_substream *substream);
-#endif
 
 struct imx_priv {
 	struct platform_device *pdev;
@@ -98,9 +91,6 @@ struct imx_priv {
 static struct imx_priv adau_priv;
 
 static struct snd_soc_ops imx_hifi_ops = {
-#ifdef RATE_CONSTRAIN_HACK
-	.startup   = imx_hifi_startup,
-#endif
 	.shutdown	= imx_hifi_shutdown,
 	.hw_params	= imx_hifi_hw_params_slv_mode,
 };
@@ -391,23 +381,6 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-#ifdef RATE_CONSTRAIN_HACK
-static u32 imx_adau1761_rates[] = { 44100 };
-static struct snd_pcm_hw_constraint_list imx_adau1761_rate_constraints = {
-	.count = ARRAY_SIZE(imx_adau1761_rates),
-	.list = imx_adau1761_rates,
-};
-
-static int imx_hifi_startup(struct snd_pcm_substream *substream)
-{
-
-	int ret;
-	ret = snd_pcm_hw_constraint_list(substream->runtime, 0,
-																	 SNDRV_PCM_HW_PARAM_RATE, &imx_adau1761_rate_constraints);
-		return ret;
-}
-#endif
-
 static void imx_hifi_shutdown(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -680,14 +653,7 @@ irqreturn_t jeck_handler(int sig,void * data)
 	
 	if(adaudata->jecksetenable != value ) {
 		adaudata->jecksetenable = value;
-		if( adau_priv.info->playstatus == 1 && adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
-        	{
-			//gpiod_direction_output(adau_priv.info->gpios[0], value ? 0:1); /*value=1:mute amp out; value=0:unmute amp out*/	
-			//imx_adau1761_amp_enable(adau_priv.info, );
-			imx_adau1761_amp_enable(data, value ? 0:1);
-			
-       	 }
-		//mdelay(100);
+		mdelay(5);
 		schedule_work(&adaudata->adauwq);
 	}
 	enable_irq(sig);
@@ -695,8 +661,12 @@ irqreturn_t jeck_handler(int sig,void * data)
 
 }
 
-void workquerehandler(struct work_struct *data)
+void workquerehandler(void *data)
 {
+	if( adau_priv.info->playstatus == 1 && \
+		adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
+		imx_adau1761_amp_enable(adau_priv.info, adau_priv.info->jecksetenable ? 0:1);
+
 	if( adau_priv.info->jecksetenable ) {
 
 		 snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
@@ -731,6 +701,8 @@ void workquerehandler(struct work_struct *data)
 
 
 	}
+
+
 }
 
 static int imx_adau1761_probe(struct platform_device *pdev)

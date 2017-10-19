@@ -1,8 +1,8 @@
 /*
  * File:           E:\WORK\Jookibox\资料\dsp\aux_dsp\1761\adau1761_IC_1_REG.h
  *
- * Created:        Tuesday, September 26, 2017 2:40:59 PM
- * Description:    JB V3.4 17.9.23 --NormalMode H tconfirmed--:IC 1 control register definitions.
+ * Created:        Wednesday, October 18, 2017 9:47:28 PM
+ * Description:    JB V4.1 17.10.12--Theo Cofirmed-- :IC 1 control register definitions.
  *
  * This software is distributed in the hope that it will be useful,
  * but is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
@@ -248,7 +248,7 @@
 /* CRC Ideal_1  - Registers (IC 1) */
 #define REG_CRC_IDEAL_1_IC_1_ADDR                 0x40C0
 #define REG_CRC_IDEAL_1_IC_1_BYTE                 1
-#define REG_CRC_IDEAL_1_IC_1_VALUE                0x7C
+#define REG_CRC_IDEAL_1_IC_1_VALUE                0x72
 
 /* CRC Ideal_2  - Registers (IC 1) */
 #define REG_CRC_IDEAL_2_IC_1_ADDR                 0x40C1
@@ -258,7 +258,7 @@
 /* CRC Ideal_3  - Registers (IC 1) */
 #define REG_CRC_IDEAL_3_IC_1_ADDR                 0x40C2
 #define REG_CRC_IDEAL_3_IC_1_BYTE                 1
-#define REG_CRC_IDEAL_3_IC_1_VALUE                0x2B
+#define REG_CRC_IDEAL_3_IC_1_VALUE                0x7D
 
 /* CRC Ideal_4  - Registers (IC 1) */
 #define REG_CRC_IDEAL_4_IC_1_ADDR                 0x40C3
@@ -875,7 +875,7 @@
 #define R44_DEJITTER_IC_1_SHIFT                   0
 
 /* CRC Ideal_1 (IC 1) */
-#define R45_CRC_IDEAL_1_IC_1                      0x7C   /* 01111100b	[7:0] */
+#define R45_CRC_IDEAL_1_IC_1                      0x72   /* 01110010b	[7:0] */
 #define R45_CRC_IDEAL_1_IC_1_MASK                 0xFF
 #define R45_CRC_IDEAL_1_IC_1_SHIFT                0
 
@@ -885,7 +885,7 @@
 #define R46_CRC_IDEAL_2_IC_1_SHIFT                0
 
 /* CRC Ideal_3 (IC 1) */
-#define R47_CRC_IDEAL_3_IC_1                      0x2B   /* 00101011b	[7:0] */
+#define R47_CRC_IDEAL_3_IC_1                      0x7D   /* 01111101b	[7:0] */
 #define R47_CRC_IDEAL_3_IC_1_MASK                 0xFF
 #define R47_CRC_IDEAL_3_IC_1_SHIFT                0
 
