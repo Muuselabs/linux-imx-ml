@@ -1,0 +1,12 @@
+/*
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright (C) 2017, Muuselabs NV/SA
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+#define ML_BOARD_JOOKI_VP1
+#include "ml-j1000.dts"
+
