@@ -167,6 +167,18 @@ static inline void imx6ul_enet_init(void)
 		imx6_enet_mac_init("fsl,imx6ul-fec", "fsl,imx6ull-ocotp");
 }
 
+
+static void __init imx6ul_mclk_init(void)
+{
+	struct regmap *gpr;
+	gpr = syscon_regmap_lookup_by_compatible("fsl,imx6ul-iomuxc-gpr");
+	if (!IS_ERR(gpr))
+	       regmap_update_bits(gpr, IOMUXC_GPR1, IMX6UL_GPR1_SAI2_MCLK_DIR,
+		                      IMX6UL_GPR1_SAI2_MCLK_DIR);
+	else
+	   pr_err("failed to find fsl,imx6ul-iomux-gpr regmap\n");
+}
+
 static void __init imx6ul_init_machine(void)
 {
 	struct device *parent;
@@ -179,6 +191,7 @@ static void __init imx6ul_init_machine(void)
 	imx6ul_enet_init();
 	imx_anatop_init();
 	imx6ul_pm_init();
+	imx6ul_mclk_init();
 }
 
 static void __init imx6ul_init_irq(void)
