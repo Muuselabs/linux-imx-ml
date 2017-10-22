@@ -533,6 +533,7 @@ static int fsl_sai_set_bclk(struct snd_soc_dai *dai, bool tx, u32 freq)
 
 	for (id = 0; id < FSL_SAI_MCLK_MAX; id++) {
 		clk_rate = clk_get_rate(sai->mclk_clk[id]);
+		//dev_err(dai->dev,"ratio  Mclock %ldHz\n",clk_rate);
 		if (!clk_rate)
 			continue;
 
@@ -800,13 +801,13 @@ static int fsl_sai_hw_free(struct snd_pcm_substream *substream,
 	struct fsl_sai *sai = snd_soc_dai_get_drvdata(cpu_dai);
 	unsigned char offset = sai->soc->reg_offset;
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-
+	return 0;
 	regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx, offset),
 				   FSL_SAI_CR3_TRCE_MASK, 0);
 
 	if (!sai->slave_mode[tx] &&
 			sai->mclk_streams & BIT(substream->stream)) {
-		clk_disable_unprepare(sai->mclk_clk[sai->mclk_id[tx]]);
+		//clk_disable_unprepare(sai->mclk_clk[sai->mclk_id[tx]]);
 		sai->mclk_streams &= ~BIT(substream->stream);
 	}
 
@@ -987,7 +988,7 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 {
 	struct fsl_sai *sai = dev_get_drvdata(cpu_dai->dev);
 	unsigned char offset = sai->soc->reg_offset;
-
+	int ret;
 	/* Software Reset for both Tx and Rx */
 	regmap_write(sai->regmap, FSL_SAI_TCSR(offset), FSL_SAI_CSR_SR);
 	regmap_write(sai->regmap, FSL_SAI_RCSR(offset), FSL_SAI_CSR_SR);
@@ -1006,6 +1007,20 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 				&sai->dma_params_rx);
 
 	snd_soc_dai_set_drvdata(cpu_dai, sai);
+	
+	if (!sai->slave_mode[true]) {
+		ret = fsl_sai_set_bclk(cpu_dai, 1, 2 * 32 * 44100);
+		if (ret)
+			return ret;
+
+		/* Do not enable the clock if it is already enabled */
+		if (!(sai->mclk_streams & BIT(SNDRV_PCM_STREAM_PLAYBACK))) {
+			ret = clk_prepare_enable(sai->mclk_clk[sai->mclk_id[1]]);
+			if (ret)
+				return ret;
+			sai->mclk_streams |= BIT(SNDRV_PCM_STREAM_PLAYBACK);
+		}
+	}
 
 	return 0;
 }
@@ -1317,6 +1332,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	for (i = 0; i < FSL_SAI_MCLK_MAX; i++) {
 		sprintf(tmp, "mclk%d", i);
 		sai->mclk_clk[i] = devm_clk_get(&pdev->dev, tmp);
+		//dev_err(&pdev->dev, "get mclk%d clock: %ld\n",i + 1, clk_get_rate(sai->mclk_clk[i]));
 		if (IS_ERR(sai->mclk_clk[i])) {
 			dev_err(&pdev->dev, "failed to get mclk%d clock: %ld\n",
 					i, PTR_ERR(sai->mclk_clk[i]));
@@ -1394,6 +1410,10 @@ static int fsl_sai_probe(struct platform_device *pdev)
 			sai->masterflag[FSL_FMT_RECEIVER] <<= 12;
 	}
 
+	if (clk_prepare_enable(sai->bus_clk)) {
+		printk( "failed to enable bus clock \n");
+	}
+	
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
 		dev_err(&pdev->dev, "no irq for node %s\n", pdev->name);
