@@ -341,7 +341,6 @@ static int fsl_sai_set_dai_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 {
 	struct fsl_sai *sai = snd_soc_dai_get_drvdata(cpu_dai);
 	int ret;
-
 	if (sai->i2s_xtor)
 		fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
 		      SND_SOC_DAIFMT_CBS_CFS;
@@ -377,6 +376,7 @@ static int fsl_sai_set_bclk(struct snd_soc_dai *dai, bool tx, u32 freq)
 
 	for (id = 0; id < FSL_SAI_MCLK_MAX; id++) {
 		clk_rate = clk_get_rate(sai->mclk_clk[id]);
+		//dev_err(dai->dev,"ratio  Mclock %ldHz\n",clk_rate);
 		if (!clk_rate)
 			continue;
 
@@ -466,7 +466,6 @@ static int fsl_sai_hw_params(struct snd_pcm_substream *substream,
 
 	if (sai->slot_width)
 		slot_width = sai->slot_width;
-
 	if (!sai->slave_mode[tx]) {
 		ret = fsl_sai_set_bclk(cpu_dai, tx,
 				slots * slot_width * params_rate(params));
@@ -560,10 +559,10 @@ static int fsl_sai_hw_free(struct snd_pcm_substream *substream,
 {
 	struct fsl_sai *sai = snd_soc_dai_get_drvdata(cpu_dai);
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-
+	return 0;
 	if (!sai->slave_mode[tx] &&
 			sai->mclk_streams & BIT(substream->stream)) {
-		clk_disable_unprepare(sai->mclk_clk[sai->mclk_id[tx]]);
+		//clk_disable_unprepare(sai->mclk_clk[sai->mclk_id[tx]]);
 		sai->mclk_streams &= ~BIT(substream->stream);
 	}
 
@@ -579,7 +578,6 @@ static int fsl_sai_trigger(struct snd_pcm_substream *substream, int cmd,
 	u8 channels = substream->runtime->channels;
 	u32 xcsr, count = 100;
 	int i;
-
 	/*
 	 * Asynchronous mode: Clear SYNC for both Tx and Rx.
 	 * Rx sync with Tx clocks: Clear SYNC for Tx, set it for Rx.
@@ -589,7 +587,6 @@ static int fsl_sai_trigger(struct snd_pcm_substream *substream, int cmd,
 		           sai->synchronous[TX] ? FSL_SAI_CR2_SYNC : 0);
 	regmap_update_bits(sai->regmap, FSL_SAI_RCR2, FSL_SAI_CR2_SYNC,
 			   sai->synchronous[RX] ? FSL_SAI_CR2_SYNC : 0);
-
 	/*
 	 * It is recommended that the transmitter is the last enabled
 	 * and the first disabled.
@@ -679,21 +676,14 @@ static int fsl_sai_startup(struct snd_pcm_substream *substream,
 {
 	struct fsl_sai *sai = snd_soc_dai_get_drvdata(cpu_dai);
 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
-	struct device *dev = &sai->pdev->dev;
 	int ret;
-
+	
 	if (sai->is_stream_opened[tx])
 		return -EBUSY;
 	else
 		sai->is_stream_opened[tx] = true;
 
 	pm_runtime_get_sync(cpu_dai->dev);
-
-	ret = clk_prepare_enable(sai->bus_clk);
-	if (ret) {
-		dev_err(dev, "failed to enable bus clock: %d\n", ret);
-		return ret;
-	}
 
 	regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx), FSL_SAI_CR3_TRCE0|FSL_SAI_CR3_TRCE1,
 			   FSL_SAI_CR3_TRCE(sai->dataline[tx]));
@@ -712,7 +702,7 @@ static void fsl_sai_shutdown(struct snd_pcm_substream *substream,
 
 	if (sai->is_stream_opened[tx]) {
 		regmap_update_bits(sai->regmap, FSL_SAI_xCR3(tx), FSL_SAI_CR3_TRCE0 | FSL_SAI_CR3_TRCE1, 0);
-		clk_disable_unprepare(sai->bus_clk);
+		//clk_disable_unprepare(sai->bus_clk);
 		sai->is_stream_opened[tx] = false;
 		pm_runtime_put_sync(cpu_dai->dev);
 	}
@@ -732,7 +722,8 @@ static const struct snd_soc_dai_ops fsl_sai_pcm_dai_ops = {
 static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 {
 	struct fsl_sai *sai = dev_get_drvdata(cpu_dai->dev);
-
+	int ret;
+	
 	/* Software Reset for both Tx and Rx */
 	regmap_write(sai->regmap, FSL_SAI_TCSR, FSL_SAI_CSR_SR);
 	regmap_write(sai->regmap, FSL_SAI_RCSR, FSL_SAI_CSR_SR);
@@ -749,6 +740,20 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 				&sai->dma_params_rx);
 
 	snd_soc_dai_set_drvdata(cpu_dai, sai);
+	
+	if (!sai->slave_mode[true]) {
+		ret = fsl_sai_set_bclk(cpu_dai, 1, 2 * 32 * 44100);
+		if (ret)
+			return ret;
+
+		/* Do not enable the clock if it is already enabled */
+		if (!(sai->mclk_streams & BIT(SNDRV_PCM_STREAM_PLAYBACK))) {
+			ret = clk_prepare_enable(sai->mclk_clk[sai->mclk_id[1]]);
+			if (ret)
+				return ret;
+			sai->mclk_streams |= BIT(SNDRV_PCM_STREAM_PLAYBACK);
+		}
+	}
 
 	return 0;
 }
@@ -946,6 +951,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	for (i = 0; i < FSL_SAI_MCLK_MAX; i++) {
 		sprintf(tmp, "mclk%d", i);
 		sai->mclk_clk[i] = devm_clk_get(&pdev->dev, tmp);
+		//dev_err(&pdev->dev, "get mclk%d clock: %ld\n",i + 1, clk_get_rate(sai->mclk_clk[i]));
 		if (IS_ERR(sai->mclk_clk[i])) {
 			dev_err(&pdev->dev, "failed to get mclk%d clock: %ld\n",
 					i, PTR_ERR(sai->mclk_clk[i]));
@@ -970,6 +976,10 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	/* I2S XTOR mode */
 	sai->i2s_xtor = (of_find_property(np, "fsl,i2s-xtor", NULL) != NULL);
 
+	if (clk_prepare_enable(sai->bus_clk)) {
+		printk( "failed to enable bus clock \n");
+	}
+	
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
 		dev_err(&pdev->dev, "no irq for node %s\n", pdev->name);
