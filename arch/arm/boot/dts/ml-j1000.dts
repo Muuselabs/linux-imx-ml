@@ -484,8 +484,8 @@
 	/*vref-supply = <&reg_vcc_3v3_mcu>;*/
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_adc1>;
+	num-channels = <4>;
 	status = "okay";
-
 };
 
 &iomuxc {
