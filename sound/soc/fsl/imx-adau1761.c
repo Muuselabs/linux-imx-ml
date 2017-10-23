@@ -623,7 +623,7 @@ static const struct snd_kcontrol_new mastervolume_controls[] = {
 		.put	= snd_pcm_put_volsw,
 		.private_value	= 1,
 	},
-#endif
+
 	{
 		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
 		//.name = "Master Playback Volume" ,
@@ -633,6 +633,7 @@ static const struct snd_kcontrol_new mastervolume_controls[] = {
 		.put	= snd_amp_put_volsw,
 		.private_value	= 1,
 	},
+#endif
 	{
 		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
 		//.name = "Master Playback Volume" ,
@@ -857,6 +858,11 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
+	if(adau_priv.info->irqenable == 0) {
+			ADAU_DBG("enable ject det irq\n");
+			enable_irq(adau_priv.info->jeckdetirq);
+			adau_priv.info->irqenable = 1;
+	}
 	return 0;
 
 fail:
