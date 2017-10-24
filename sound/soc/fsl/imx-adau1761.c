@@ -115,6 +115,9 @@ static const struct snd_soc_dapm_route audio_map[] = {
 //     { "RINN", NULL, "Mic In" },  
 };
 
+irqreturn_t jeck_handler(int sig,void * data);
+
+
 
 static void imx_adau1761_amp_enable(struct imx_adau1761_data *data, int en)
 {
@@ -348,19 +351,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 				     SND_SOC_CLOCK_IN);
 #ifndef USE_17X1_OPS
 	if( data->jecksetenable < 0 ) {
-		disable_irq(data->jeckdetirq);
-		ret = gpiod_get_value(data->gpios[3]);
-		if( ret == CODEC_OUTPUT_HEADPHONE ) {
-			 ADAU_DBG(" gpio jeck detect high\n");
-			 snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_MUTELOUT, 0, 0); /*mute Lineout*/
-			 snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_UNMUTEHP, 0, 0); /*unmute headphone*/
-		} else {
-			ADAU_DBG(" gpio jeck detect low\n");
-			snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_UNMUTELOUT, 0, 0); /*unmute Lineout*/
-			snd_soc_dai_set_tdm_slot(codec_dai, USERCOMMAND, USERCOMMAND_MUTEHP, 0, 0); /*mute headphone*/
-		}
-		data->jecksetenable = ret;
-		enable_irq(data->jeckdetirq);
+		jeck_handler(adau_priv.info->jeckdetirq, (void *)adau_priv.info);
 	}
 #endif
 	if( substream->stream == SNDRV_PCM_STREAM_PLAYBACK ) {

@@ -813,8 +813,8 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
 			sigmadsp_write_i2c(local_client,0x402B, 1,DAC_CHAIN);
 			sigmadsp_write_i2c(local_client,0x402C, 1,DAC_CHAIN);
-			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut_L[0]);
-			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut_R[0]);
+			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut[0]);
+			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut[0]);
 			
 		};break;
 		case USERCOMMAND_UNMUTELOUT: {
@@ -822,8 +822,8 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
 			sigmadsp_write_i2c(local_client,0x402B, 1,DAC_CHAIN);
 			sigmadsp_write_i2c(local_client,0x402C, 1,DAC_CHAIN);
-			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut_L[1]);
-			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut_R[1]);
+			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut[1]);
+			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut[1]);
 		};break;
 		case USERCOMMAND_MUTEHP: {
 			ADAU_DBG("mute headphone");

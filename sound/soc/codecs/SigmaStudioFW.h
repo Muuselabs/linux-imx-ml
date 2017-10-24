@@ -49,28 +49,31 @@ const unsigned char DSP_Volume[39][4]=
 {0x00,0x80,0x00,0x00},//-0
 };
 
-ADI_REG_TYPE LineOut_R[2][1] = {
-	{0xDC},/*mute*/
-	{0xDE}, /*unmute*/
-};
-ADI_REG_TYPE LineOut_L[2][1] = {
-	{0xD8},	/*mute*/
-	{0xDA},  /*unmute*/
-};
-ADI_REG_TYPE HEADPHONE_R[2][1] = {
-	{0xE5}, /*mute*/
-	{0xE7}, /*unmute*/
-};
-ADI_REG_TYPE HEADPHONE_L[2][1] = {
+
+ADI_REG_TYPE LineOut[2][1] = {
 	{0xE4 },	/*mute*/
 	{0xE6},   /*unmute*/
 };
 
+ADI_REG_TYPE HEADPHONE_L[2][1] = {
+	{0xE4 },	/*mute*/
+	{0xE6},   /*unmute*/
+};
+ADI_REG_TYPE HEADPHONE_R[2][1] = {
+	{0xE5 },	/*mute*/
+	{0xE7},   /*unmute*/
+};
 
 ADI_REG_TYPE MIC_MIXER[2][1] ={
 	{0x00},		/*mute*/
 	{0x08},		/*unmute*/
 };
+
+ADI_REG_TYPE MIC_VolControl[2][1] ={
+	{0xE0},		/*mute*/
+	{0xE3},		/*unmute*/
+};
+
 ADI_REG_TYPE MIC_VOLUME_CTL_L[2][1] = {
 	{0x6A},		/*mute*/
 	{0x6B},		/*unmute*/
