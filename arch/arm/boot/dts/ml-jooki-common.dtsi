@@ -120,22 +120,42 @@
 	nand-on-flash-bbt;
 	
 	partition@0 {
-		label = "uboot";
+		label = "spl";
 		reg = <0x00000000 0x00200000>;
 	};
 	
 	partition@1 {
 		label = "uboot-env";
-		reg = <0x00200000 0x00100000>;
+		reg = <0x00200000 0x00200000>;
 	};
 	
 	partition@2 {
-		label = "ubifs";
-		reg = <0x00300000 0x19000000>;
+		label = "uboot-1";
+		reg = <0x00400000 0x00200000>;
 	};
 	
 	partition@3 {
+		label = "kernel-1";
+		reg = <0x00800000 0x00400000>;
+	};
+	
+	partition@4 {
+		label = "uboot-2";
+		reg = <0x00600000 0x00200000>;
+	};
+	
+	partition@5 {
+		label = "kernel-2";
+		reg = <0x00C00000 0x00400000>;
+	};
+	
+	partition@6 {
+		label = "ubifs";
+		reg = <0x01000000 0x19000000>;
+	};
+	
+	partition@7 {
 		label = "usrdata";
-		reg = <0x19300000 0x06D00000>;
+		reg = <0x1A000000 0x05F00000>;
 	};
 };
