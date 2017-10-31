@@ -162,9 +162,9 @@ static int adau1761_slv_mode_init(struct imx_adau1761_data *data)
 	struct clk *ssi_clk;
 	struct i2c_client *codec_dev = data->codec_dev;
 
-	new_parent = devm_clk_get(&codec_dev->dev, "mclk");
+	new_parent = devm_clk_get(&codec_dev->dev, "pll4_audio");
 	if (IS_ERR(new_parent)) {
-		pr_err("Could not get \"mclk\" clock \n");
+		pr_err("Could not get \"pll4_audio\" clock \n");
 		return PTR_ERR(new_parent);
 	}
 
@@ -198,17 +198,18 @@ static int adau1761_slv_mode_clock_enable(int enable, struct imx_adau1761_data *
 
 	switch (data->sysclk) {
 		case 11289600:
-			pll_rate = 632217600;
+			pll_rate = 812851200;
 			break;
 
 		case 12288000:
-			pll_rate = 688128000;
+			pll_rate = 786432000;
 			break;
 
 		default:
 			return -EINVAL;
 	}
-
+	clk_disable_unprepare(data->pll);
+	clk_disable_unprepare(data->clock_root);
 	rate_req = pll_rate;
 	rate_avail = clk_round_rate(data->pll, rate_req);
 	clk_set_rate(data->pll, rate_avail);
@@ -217,10 +218,11 @@ static int adau1761_slv_mode_clock_enable(int enable, struct imx_adau1761_data *
 	rate_avail = clk_round_rate(data->clock_root,
 								rate_req);
 	clk_set_rate(data->clock_root, rate_avail);
-	/*
+	
 	pr_info("%s: \"imx-ssi.1\" rate = %ld (= %ld)\n",
 			__func__, rate_avail, rate_req);
-	*/
+	clk_prepare_enable(data->pll);
+	clk_prepare_enable(data->clock_root);
 	data->current_rate = data->sysclk;
 
 	return 0;
@@ -241,16 +243,16 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	unsigned int tx_mask, rx_mask;
 	unsigned int sampling_rate;
 	unsigned int div_2, div_psr, div_pm;
-	int ret;
+	int ret,bits;
 
 	sampling_rate = params_rate(params);
 	sample_format = params_format(params);
-
+	bits = params_width(params);
 	channels = params_channels(params);
 	
-	ADAU_DBG("%s:%s  sampling rate = %u  channels = %u \n", __FUNCTION__,
+	ADAU_DBG("%s:%s  sampling rate = %u  channels = %u bits = %d\n", __FUNCTION__,
 		   (substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? "Playback" : "Capture"),
-		   sampling_rate, channels);
+		   sampling_rate, channels,bits);
 
 	adau1761_slv_mode_clock_enable(1,data);
 
@@ -267,8 +269,9 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	/* S[TR]CCR:DC */
 	tx_mask = ~((1 << channels) - 1);
 	rx_mask = tx_mask;
-	snd_soc_dai_set_tdm_slot(cpu_dai, tx_mask, rx_mask, 2, 32);
-
+	snd_soc_dai_set_tdm_slot(cpu_dai, tx_mask, rx_mask, channels,  bits);
+	
+#if 0
 	/*
 	 * SSI sysclk divider:
 	 * div_2:	/1 or /2
@@ -311,7 +314,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	snd_soc_dai_set_clkdiv(cpu_dai, IMX_SSI_TX_DIV_PSR, (div_psr ? SSI_STCCR_PSR : 0));
 	snd_soc_dai_set_clkdiv(cpu_dai, IMX_SSI_TX_DIV_PM, div_pm);
 	
-#if 0
+
 	/* set codec DAI configuration */
 	dai_format = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
 		SND_SOC_DAIFMT_CBS_CFS;
@@ -321,7 +324,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 		ADAU_DBG(" %s:%d: failed!\n",__func__,__LINE__);
 		return ret;
 	}
-#endif
+
 	/* set codec DAI configuration */
 	switch (sampling_rate) {
 		case 8000:
@@ -349,6 +352,8 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 				     ADAU17X1_CLK_SRC_PLL,
 				     data->sysclk,
 				     SND_SOC_CLOCK_IN);
+#endif
+	
 #ifndef USE_17X1_OPS
 	if( data->jecksetenable < 0 ) {
 		jeck_handler(adau_priv.info->jeckdetirq, (void *)adau_priv.info);

@@ -401,7 +401,32 @@ static int fsl_sai_set_bclk(struct snd_soc_dai *dai, bool tx, u32 freq)
 
 	return 0;
 }
+static int fsl_sai_mclk_swith(struct fsl_sai *sai ,struct snd_pcm_hw_params *params)
+{
+	long req =	params_rate(params);
+	int ret;
 
+	if(req = 44100) req = 11289600;
+	else req = 18432000;
+	if(sai->mclk_val == req ) return 0;
+	
+	clk_disable_unprepare(sai->mclk_clk[1]);
+
+	dev_err(&sai->pdev->dev, "get mclk%d clock: %ld\n",2, clk_get_rate(sai->mclk_clk[1]));
+	if (IS_ERR(sai->mclk_clk[1])) {
+			dev_err(&sai->pdev->dev, "failed to get mclk%d clock: %ld\n",
+					2, PTR_ERR(sai->mclk_clk[1])); 
+	}
+
+	
+	ret= clk_set_rate(sai->mclk_clk[1],req);
+	dev_err(&sai->pdev->dev, "set mclk%d clock: %ld , ret =%d\n",2,req ,ret);
+	if (clk_prepare_enable(sai->mclk_clk[1])) {
+		printk( "failed to enable bus clock \n");
+	}
+	sai->mclk_val = req;
+	return 0;
+}
 static int fsl_sai_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params,
 		struct snd_soc_dai *cpu_dai)
@@ -414,10 +439,12 @@ static int fsl_sai_hw_params(struct snd_pcm_substream *substream,
 	u32 slot_width = word_width;
 	int ret;
 
+	fsl_sai_mclk_swith(sai,params);
+	
 	if (!sai->is_slave_mode) {
 		slot_width = sai->slot_width;
-		ret = fsl_sai_set_bclk(cpu_dai, tx,
-				sai->slots * slot_width * params_rate(params));
+		//ret = fsl_sai_set_bclk(cpu_dai, tx,sai->slots * slot_width * 48000);
+		ret = fsl_sai_set_bclk(cpu_dai, tx,sai->slots * slot_width * params_rate(params));
 		if (ret)
 			return ret;
 
@@ -656,7 +683,7 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 	
 	int ret;
 	if (!sai->is_slave_mode) {
-		ret = fsl_sai_set_bclk(cpu_dai, 1, 2 * 32 * 44100);
+		ret = fsl_sai_set_bclk(cpu_dai, 1, 2 * 16 * 44100);
 		if (ret)
 			return ret;
 
@@ -838,18 +865,19 @@ static int fsl_sai_probe(struct platform_device *pdev)
 				PTR_ERR(sai->bus_clk));
 		sai->bus_clk = NULL;
 	}
-
+	
 	for (i = 0; i < FSL_SAI_MCLK_MAX; i++) {
 		sprintf(tmp, "mclk%d", i);
 		sai->mclk_clk[i] = devm_clk_get(&pdev->dev, tmp);
-		//dev_err(&pdev->dev, "get mclk%d clock: %ld\n",i + 1, clk_get_rate(sai->mclk_clk[i]));
+		dev_err(&pdev->dev, "get mclk%d clock: %ld\n",i + 1, clk_get_rate(sai->mclk_clk[i]));
 		if (IS_ERR(sai->mclk_clk[i])) {
 			dev_err(&pdev->dev, "failed to get mclk%d clock: %ld\n",
 					i + 1, PTR_ERR(sai->mclk_clk[i]));
 			sai->mclk_clk[i] = NULL;
 		}
 	}
-
+	sai->mclk_val = clk_get_rate(sai->mclk_clk[1]);
+	
 	if (clk_prepare_enable(sai->bus_clk)) {
 		printk( "failed to enable bus clock \n");
 	}
