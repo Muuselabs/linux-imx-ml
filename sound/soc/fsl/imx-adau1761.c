@@ -492,9 +492,9 @@ static int imx_audmux_config_slv_mode(int _slave, int _master)
 	return 0;
 }
 
-static int mastervolume =80;
+//static int mastervolume =80;
 
-int snd_pcm_info_volsw(struct snd_kcontrol *kcontrol,
+int snd_headphonestatus_info_volsw(struct snd_kcontrol *kcontrol,
 		struct	snd_ctl_elem_info	*uinfo)
 {
 
@@ -502,7 +502,7 @@ int snd_pcm_info_volsw(struct snd_kcontrol *kcontrol,
 
 	uinfo->count = 1;	//the info of elem count
 	uinfo->value.integer.min = 0;				//the info of min value
-	uinfo->value.integer.max = 100;				//the info of max value
+	uinfo->value.integer.max = 1;				//the info of max value
 	return	0;
 }
 int snd_switch_info_volsw(struct snd_kcontrol *kcontrol,
@@ -516,11 +516,11 @@ int snd_switch_info_volsw(struct snd_kcontrol *kcontrol,
 	uinfo->value.integer.max = 1;				//the info of max value
 	return	0;
 }
-int snd_pcm_get_volsw(struct snd_kcontrol	*kcontrol,
+int snd_headphonestatus_get_volsw(struct snd_kcontrol	*kcontrol,
 		struct	snd_ctl_elem_value	*ucontrol)
 {
 
-	ucontrol->value.integer.value[0] = mastervolume;	
+	ucontrol->value.integer.value[0] = adau_priv.info->jecksetenable;	
 	ucontrol->value.integer.value[1] =0;
 
 	return 0;
@@ -534,40 +534,8 @@ int snd_switch_get_volsw(struct snd_kcontrol	*kcontrol,
 
 	return 0;
 }
-int snd_pcm_put_volsw(struct snd_kcontrol	*kcontrol,
-		struct	snd_ctl_elem_value	*ucontrol)
-{
-	unsigned int tmp;
-	unsigned char val;
-	int ret ;
-	tmp = ucontrol->value.integer.value[0] ;	
-	//ucontrol->value.integer.value[1] =0;
-	if( tmp > 100)
-		tmp =100;
-	mastervolume = tmp;
-	val = tmp * 38 / 100;
-	ret = snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai, USERCOMMAND, USERCOMMAND, val, val); /*mute Lineout*/
-	if ( ret < 0 ) {
-		pr_err("Failed to set snd_soc_dai_set_tdm_slot  %d\n", ret);
-	
-		return ret;
-	}
-	return 0;
-}
-int snd_amp_put_volsw(struct snd_kcontrol	*kcontrol,
-		struct	snd_ctl_elem_value	*ucontrol)
-{
-	unsigned int tmp;
 
-	tmp = ucontrol->value.integer.value[0];
-	if(adau_priv.info->irqenable == 0) {
-			ADAU_DBG("enable ject det irq\n");
-			enable_irq(adau_priv.info->jeckdetirq);
-			adau_priv.info->irqenable = 1;
-	}
 
-	return 0;
-}	
 
 int snd_switch_put_volsw(struct snd_kcontrol	*kcontrol,
 		struct	snd_ctl_elem_value	*ucontrol)
@@ -630,6 +598,14 @@ static const struct snd_kcontrol_new mastervolume_controls[] = {
 		.private_value	= 1,
 	},
 #endif
+	{
+		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name = "StateOfHP" ,
+		.info	= snd_headphonestatus_info_volsw,
+		.get=snd_headphonestatus_get_volsw,
+		.private_value	= 1,
+	},
+
 	{
 		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
 		//.name = "Master Playback Volume" ,
