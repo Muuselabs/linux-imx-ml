@@ -704,9 +704,9 @@ static const struct snd_soc_codec_driver adau1761_codec_driver = {
 	.num_dapm_routes = ARRAY_SIZE(adau1x61_dapm_routes),
 };
 
-#define ADAU1761_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | \
-	SNDRV_PCM_FMTBIT_S32_LE)
-
+#define ADAU1761_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE )
+/*#define ADAU1761_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | \
+	SNDRV_PCM_FMTBIT_S32_LE)*/
 static struct snd_soc_dai_driver adau1361_dai_driver = {
 	.name = "adau-hifi",
 	.playback = {
@@ -962,14 +962,16 @@ static struct snd_soc_dai_driver adau1761_dai_driver = {
 		.stream_name = "Playback",
 		.channels_min = 2,
 		.channels_max = 8,
-		.rates = SNDRV_PCM_RATE_8000_96000,
+		.rates = SNDRV_PCM_RATE_8000|SNDRV_PCM_RATE_16000|SNDRV_PCM_RATE_32000|\
+				SNDRV_PCM_RATE_44100|SNDRV_PCM_RATE_48000|SNDRV_PCM_RATE_96000,
 		.formats = ADAU1761_FORMATS,
 	},
 	.capture = {
 		.stream_name = "Capture",
 		.channels_min = 2,
 		.channels_max = 8,
-		.rates = SNDRV_PCM_RATE_8000_96000,
+		.rates =  SNDRV_PCM_RATE_8000|SNDRV_PCM_RATE_16000|SNDRV_PCM_RATE_32000|\
+				SNDRV_PCM_RATE_44100|SNDRV_PCM_RATE_48000|SNDRV_PCM_RATE_96000,
 		.formats = ADAU1761_FORMATS,
 	},
 #ifndef	USE_17X1_OPS
