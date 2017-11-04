@@ -961,7 +961,7 @@ static struct snd_soc_dai_driver adau1761_dai_driver = {
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 2,
-		.channels_max = 8,
+		.channels_max = 2,
 		.rates = SNDRV_PCM_RATE_8000|SNDRV_PCM_RATE_16000|SNDRV_PCM_RATE_32000|\
 				SNDRV_PCM_RATE_44100|SNDRV_PCM_RATE_48000|SNDRV_PCM_RATE_96000,
 		.formats = ADAU1761_FORMATS,
@@ -969,7 +969,7 @@ static struct snd_soc_dai_driver adau1761_dai_driver = {
 	.capture = {
 		.stream_name = "Capture",
 		.channels_min = 2,
-		.channels_max = 8,
+		.channels_max = 2,
 		.rates =  SNDRV_PCM_RATE_8000|SNDRV_PCM_RATE_16000|SNDRV_PCM_RATE_32000|\
 				SNDRV_PCM_RATE_44100|SNDRV_PCM_RATE_48000|SNDRV_PCM_RATE_96000,
 		.formats = ADAU1761_FORMATS,
