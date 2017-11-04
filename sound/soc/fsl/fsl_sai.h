@@ -144,6 +144,7 @@ struct fsl_sai {
 
 	unsigned int mclk_id[2];
 	unsigned int mclk_streams;
+	unsigned int mclk_val;
 
 	unsigned int slots;
 	unsigned int slot_width;
