@@ -419,14 +419,9 @@
 			linux,code = <KEY_PLAY>;
 		};
 		user6 {
-			label = "Radio on";
-			gpios = <&gpio1 18 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_WPS_BUTTON>;
-		};
-		user7 {
-			label = "Airplane mode";
+			label = "Airplane Slider";
 			gpios = <&gpio1 19 GPIO_ACTIVE_HIGH>;
-			linux,code = <KEY_OPTION>;
+			linux,code = <KEY_WPS_BUTTON>;
 		};
 		/*
 		user8 {
