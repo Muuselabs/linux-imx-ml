@@ -31,6 +31,7 @@
 #define SNVS_HPSR_BTN	BIT(6)
 #define SNVS_LPSR_SPO	BIT(18)
 #define SNVS_LPCR_DEP_EN BIT(5)
+#define SNVS_LPCR_ONOFF (BIT(21) | BIT(20))
 
 #define DEBOUNCE_TIME 30
 #define REPEAT_INTERVAL 60
@@ -129,7 +130,8 @@ static int imx_snvs_pwrkey_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	regmap_update_bits(pdata->snvs, SNVS_LPCR_REG, SNVS_LPCR_DEP_EN, SNVS_LPCR_DEP_EN);
+	/* PP: set the ONOFF field. (also set in u-boot, in the poweroff driver, and maybe in the DCD in u-boot) */
+	regmap_update_bits(pdata->snvs, SNVS_LPCR_REG, SNVS_LPCR_DEP_EN | SNVS_LPCR_ONOFF, SNVS_LPCR_DEP_EN | SNVS_LPCR_ONOFF);
 
 	/* clear the unexpected interrupt before driver ready */
 	regmap_write(pdata->snvs, SNVS_LPSR_REG, SNVS_LPSR_SPO);
