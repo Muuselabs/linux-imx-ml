@@ -23,14 +23,19 @@
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
 
+#define SNVS_LPCR_DEP_EN   BIT(5)
+#define SNVS_LPCR_TOP      BIT(6)
+#define SNVS_LPCR_ONOFF   (BIT(21) | BIT(20))
+
 static void __iomem *snvs_base;
 
 static void do_imx_poweroff(void)
 {
 	u32 value = readl(snvs_base);
 
-	/* set TOP and DP_EN bit */
-	writel(value | 0x60, snvs_base);
+	/* set TOP and DP_EN bit, and configure the poweron button to act fast */
+	/* PP: set the ONOFF field. (also set in u-boot, in the poweroff driver, and maybe in the DCD in u-boot) */	
+	writel(value | SNVS_LPCR_TOP | SNVS_LPCR_DEP_EN | SNVS_LPCR_ONOFF, snvs_base);
 }
 
 static int imx_poweroff_probe(struct platform_device *pdev)
