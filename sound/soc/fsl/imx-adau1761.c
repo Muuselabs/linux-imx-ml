@@ -249,11 +249,13 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	sample_format = params_format(params);
 	bits = params_width(params);
 	channels = params_channels(params);
+
+	if(sampling_rate == 44100) bits=32;
 	
 	ADAU_DBG("%s:%s  sampling rate = %u  channels = %u bits = %d\n", __FUNCTION__,
 		   (substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? "Playback" : "Capture"),
 		   sampling_rate, channels,bits);
-
+	
 	adau1761_slv_mode_clock_enable(1,data);
 
 	dai_format = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_IF |
