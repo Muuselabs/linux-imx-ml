@@ -287,13 +287,13 @@
 
 /* Audio section */
 / {
-	sound2 {
+	sound {
 		compatible = "fsl,imx-audio-adau1761";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_sai2_snvs>;
 		model = "adau1761-audio";
 		cpu-dai = <&sai2>;
-		audio-codec = <&codec2>;
+		audio-codec = <&codec>;
 		/* PP: crosschecked sch VC4.0  20170829 */
 		amp-gpios=	
 #ifdef ML_BOARD_JOOKI_VP1
@@ -346,11 +346,12 @@
 };
 
 &i2c1 {
-	codec2: adau1761@38 {
+	codec: adau1761@38 {
 		compatible = "sigma,adau1761";
 		reg = <0x38>;
-		clocks = <&clks IMX6UL_CLK_SAI2>;
-		clock-names = "mclk";
+		clocks = <&clks IMX6UL_CLK_SAI2>,
+		<&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
+		clock-names = "mclk","pll4_audio";
 	};
 };
 
