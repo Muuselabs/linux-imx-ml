@@ -1036,25 +1036,19 @@ const struct regmap_config adau1761_regmap_config = {
 	.cache_type = REGCACHE_RBTREE,
 };
 
-static const struct of_device_id adau1761_of_match[] = {
-	{ .compatible = "sigma,adau1761", },
-};
-
 static int adau1761_i2c_probe(struct i2c_client *client,
-	const struct i2c_device_id *id)
+							  const struct i2c_device_id *id)
 {
-	int ret =0;
 	struct regmap_config config;
 	ADAU_DBG(" in %s\n",__func__);
+	
 	config = adau1761_regmap_config;
 	config.val_bits = 8;
 	config.reg_bits = 16;
 	local_client = client;
-	ret =  adau1761_probe(&client->dev, devm_regmap_init_i2c(client, &config), id->driver_data, NULL);
-	
-
-
-	return ret;
+	return adau1761_probe(&client->dev,
+						  devm_regmap_init_i2c(client, &config),
+						  id->driver_data, NULL);
 }
 
 static int adau1761_i2c_remove(struct i2c_client *client)
@@ -1064,47 +1058,29 @@ static int adau1761_i2c_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id adau1761_i2c_ids[] = {
-	{ "adau1761", 0x38},
+	{ "adau1761", ADAU1761},
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, adau1761_i2c_ids);
 
+#if defined(CONFIG_OF)
+static const struct of_device_id adau1761_i2c_dt_ids[] = {
+	{ .compatible = "sigma,adau1761", },
+	{ },
+};
+MODULE_DEVICE_TABLE(of, adau1761_i2c_dt_ids);
+#endif
+
 static struct i2c_driver adau1761_i2c_driver = {
 	.driver = {
 		.name = "adau1761",
-		.owner = THIS_MODULE,
-		.of_match_table = adau1761_of_match,
+		.of_match_table = of_match_ptr(adau1761_i2c_dt_ids),
 	},
 	.probe = adau1761_i2c_probe,
 	.remove = adau1761_i2c_remove,
 	.id_table = adau1761_i2c_ids,
 };
-
-
-static int __init adau1761_modinit(void)
-{
-	int ret = 0;
-#if IS_ENABLED(CONFIG_I2C)
-	ret = i2c_add_driver(&adau1761_i2c_driver);
-	if (ret != 0) {
-		printk(KERN_ERR "Failed to register adau1761 I2C driver: %d\n",
-		       ret);
-	}
-#endif
-
-	return ret;
-}
-module_init(adau1761_modinit);
-
-static void __exit adau1761_exit(void)
-{
-#if IS_ENABLED(CONFIG_I2C)
-	i2c_del_driver(&adau1761_i2c_driver);
-#endif
-
-}
-module_exit(adau1761_exit);
-
+module_i2c_driver(adau1761_i2c_driver);
 
 MODULE_DESCRIPTION("ASoC ADAU1361/ADAU1461/ADAU1761/ADAU1961 CODEC driver");
 MODULE_AUTHOR("kean.wu@hansong-china.com");
