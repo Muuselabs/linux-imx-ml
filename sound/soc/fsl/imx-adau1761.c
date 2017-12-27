@@ -689,33 +689,39 @@ void workquerehandler(struct work_struct *data)
 
 static int imx_adau1761_probe(struct platform_device *pdev)
 {
-	struct device_node *ssi_np, *codec_np;
-	struct platform_device *ssi_pdev;
+	struct device_node *cpu_np, *codec_np;
+	struct platform_device *cpu_pdev;
 	struct imx_priv *priv = &adau_priv;
 	struct i2c_client *codec_dev;
 	struct imx_adau1761_data *data;
-	struct gpio_desc *amp_mute, *amp_sd, *boosten,*jeck_detect;
+	struct gpio_desc *amp_mute, *amp_sd, *boosten, *jeck_detect;
 	int ret;
 	
 	ADAU_DBG( " in %s\n" , __func__ );
 	
 	priv->pdev = pdev;
 
-	ssi_np = of_parse_phandle(pdev->dev.of_node, "cpu-dai", 0);
+	cpu_np = of_parse_phandle(pdev->dev.of_node, "cpu-dai", 0);
+	if (!cpu_np) {
+		dev_err(&pdev->dev, "cpu dai phandle missing or invalid\n");
+		ret = -EINVAL;
+		goto fail;
+	}
+	
 	codec_np = of_parse_phandle(pdev->dev.of_node, "audio-codec", 0);
-	if (!ssi_np || !codec_np) {
+	if (!codec_np) {
 		dev_err(&pdev->dev, "phandle missing or invalid\n");
 		ret = -EINVAL;
 		goto fail;
 	}
-
-	ssi_pdev = of_find_device_by_node(ssi_np);
-	if (!ssi_pdev) {
-		dev_err(&pdev->dev, "failed to find SSI platform device\n");
+	
+	cpu_pdev = of_find_device_by_node(cpu_np);
+	if (!cpu_pdev) {
+		dev_err(&pdev->dev, "failed to find SAI platform device\n");
 		ret = -EINVAL;
 		goto fail;
 	}
-
+	
 	codec_dev = of_find_i2c_device_by_node(codec_np);
 	if (!codec_dev || !codec_dev->dev.driver) {
 		dev_err(&pdev->dev, "failed to find codec platform device\n");
@@ -729,6 +735,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto fail;
 	}
+	
 	amp_sd = gpiod_get_index(&pdev->dev, "amp", 1, GPIOD_OUT_HIGH);
 	if(!amp_sd)
 	{
@@ -736,6 +743,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto fail;
 	}
+	
 	boosten = gpiod_get_index(&pdev->dev, "amp", 2, GPIOD_OUT_LOW);
 	if(!boosten)
 	{
@@ -743,7 +751,14 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto fail;
 	}
+	
 	jeck_detect = gpiod_get_index(&pdev->dev, "jeckdetect", 0, GPIOD_IN);
+	if(!jeck_detect)
+	{
+		dev_err(&pdev->dev, "failed to get gpio jeck_detect\n");
+		ret = -EINVAL;
+		goto fail;
+	}
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data) {
 		ret = -ENOMEM;
@@ -754,12 +769,12 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	
 	data->codec_dev = codec_dev;
 
+	data->dai.codec_of_node = codec_np;
+	data->dai.cpu_dai_name = dev_name(&cpu_pdev->dev);
+	data->dai.platform_of_node = cpu_np;
 	data->dai.name = "adau1x61";
 	data->dai.stream_name = "adau1x61";
 	data->dai.codec_dai_name = "adau1761-hifi";
-	data->dai.codec_of_node = codec_np;
-	data->dai.cpu_dai_name = dev_name(&ssi_pdev->dev);
-	data->dai.platform_of_node = ssi_np;
 	data->dai.ops = &imx_hifi_ops;
 	data->dai.init = &imx_adau1761_init;
 
@@ -845,8 +860,8 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	return 0;
 
 fail:
-	if (ssi_np)
-		of_node_put(ssi_np);
+	if (cpu_np)
+		of_node_put(cpu_np);
 
 	if (codec_np)
 		of_node_put(codec_np);
