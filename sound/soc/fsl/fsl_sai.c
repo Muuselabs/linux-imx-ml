@@ -723,6 +723,7 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 {
 	struct fsl_sai *sai = dev_get_drvdata(cpu_dai->dev);
 	int ret;
+	printk("[SAI] enter %s for %s\n", __func__, cpu_dai->name);
 	
 	/* Software Reset for both Tx and Rx */
 	regmap_write(sai->regmap, FSL_SAI_TCSR, FSL_SAI_CSR_SR);
@@ -743,18 +744,26 @@ static int fsl_sai_dai_probe(struct snd_soc_dai *cpu_dai)
 	
 	if (!sai->slave_mode[true]) {
 		ret = fsl_sai_set_bclk(cpu_dai, 1, 2 * 32 * 44100);
-		if (ret)
+		if (ret) {
+			printk("[SAI] fsl_sai_set_bclk fails %d\n", ret);
+			
 			return ret;
-
+		}
+		
 		/* Do not enable the clock if it is already enabled */
 		if (!(sai->mclk_streams & BIT(SNDRV_PCM_STREAM_PLAYBACK))) {
 			ret = clk_prepare_enable(sai->mclk_clk[sai->mclk_id[1]]);
-			if (ret)
+			if (ret) {
+				printk("[SAI] clk_prepare_enable fails %d\n", ret);
+				
 				return ret;
+			}
+			
 			sai->mclk_streams |= BIT(SNDRV_PCM_STREAM_PLAYBACK);
 		}
 	}
-
+	printk("[SAI] exit %s\n", __func__);
+	
 	return 0;
 }
 
@@ -909,7 +918,9 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	int index;
 	u32 buffer_size;
 	unsigned long irqflag = 0;
-
+	
+	printk("[SAI] enter %s\n", __func__);
+	
 	sai = devm_kzalloc(&pdev->dev, sizeof(*sai), GFP_KERNEL);
 	if (!sai)
 		return -ENOMEM;
@@ -917,17 +928,23 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	sai->pdev = pdev;
 
 	of_id = of_match_device(fsl_sai_ids, &pdev->dev);
-	if (!of_id || !of_id->data)
+	if (!of_id || !of_id->data) {
+		printk("[SAI] of_match_device fails\n");
 		return -EINVAL;
+	}
 
 	sai->is_lsb_first = of_property_read_bool(np, "lsb-first");
 	sai->soc = of_id->data;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	base = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(base))
+	if (IS_ERR(base)) {
+		printk("[SAI] devm_ioremap_resource fails\n");
+		
 		return PTR_ERR(base);
+	}
 
+	printk("[SAI] regmap\n");
 	sai->regmap = devm_regmap_init_mmio_clk(&pdev->dev,
 			"bus", base, &fsl_sai_regmap_config);
 
@@ -947,7 +964,8 @@ static int fsl_sai_probe(struct platform_device *pdev)
 				PTR_ERR(sai->bus_clk));
 		sai->bus_clk = NULL;
 	}
-
+	printk("[SAI] bus_clk=%p\n", sai->bus_clk);
+	
 	for (i = 0; i < FSL_SAI_MCLK_MAX; i++) {
 		sprintf(tmp, "mclk%d", i);
 		sai->mclk_clk[i] = devm_clk_get(&pdev->dev, tmp);
@@ -957,6 +975,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 					i, PTR_ERR(sai->mclk_clk[i]));
 			sai->mclk_clk[i] = NULL;
 		}
+		printk("[SAI] mclk_clk[%d]=%p\n", i, sai->mclk_clk[i]);
 	}
 
 	/*dataline mask for rx and tx*/
@@ -976,10 +995,12 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	/* I2S XTOR mode */
 	sai->i2s_xtor = (of_find_property(np, "fsl,i2s-xtor", NULL) != NULL);
 
+	printk( "[SAI] enable bus clock \n");
 	if (clk_prepare_enable(sai->bus_clk)) {
 		printk( "failed to enable bus clock \n");
 	}
 	
+	printk( "[SAI] get IRQ \n");
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
 		dev_err(&pdev->dev, "no irq for node %s\n", pdev->name);
@@ -997,6 +1018,7 @@ static int fsl_sai_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	printk( "[SAI] TX/RX sync \n");
 	/* Sync Tx with Rx as default by following old DT binding */
 	sai->synchronous[RX] = true;
 	sai->synchronous[TX] = false;
@@ -1033,8 +1055,11 @@ static int fsl_sai_probe(struct platform_device *pdev)
 		}
 
 		index = of_alias_get_id(np, "sai");
-		if (index < 0)
+		if (index < 0) {
+			printk( "[SAI] of_alias_get_id exit \n");
+			
 			return index;
+		}
 
 		regmap_update_bits(gpr, IOMUXC_GPR1, MCLK_DIR(index),
 				   MCLK_DIR(index));
@@ -1050,15 +1075,21 @@ static int fsl_sai_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, sai);
 
 	pm_runtime_enable(&pdev->dev);
-
+	printk("[SAI] devm_snd_soc_register_component\n");
+	
 	ret = devm_snd_soc_register_component(&pdev->dev, &fsl_component,
 			&fsl_sai_dai, 1);
-	if (ret)
+	if (ret) {
+		printk( "[SAI] devm_snd_soc_register_component fails %d \n", ret);
+		
 		return ret;
+	}
 
 	if (of_property_read_u32(np, "fsl,dma-buffer-size", &buffer_size))
 		buffer_size = IMX_SAI_DMABUF_SIZE;
-
+	
+	printk("[SAI] almost done %s\n", __func__);
+	
 	if (sai->soc->imx)
 		return imx_pcm_platform_register(&pdev->dev);
 	else
