@@ -28,11 +28,11 @@
 #include <linux/pinctrl/consumer.h>
 #include <linux/delay.h>
 
-
 #include "../codecs/adau_1761-i2c.h"
 
 #include "imx-audmux.h"
 #include "imx-ssi.h"
+#include "fsl_sai.h"
 
 #define AMPMUTEOFF 1
 #define AMPMUTEON 0
@@ -236,6 +236,7 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_card *card = rtd->card;
 	struct imx_adau1761_data *data = snd_soc_card_get_drvdata(card);
+	struct fsl_sai *sai = dev_get_drvdata(cpu_dai->dev);
 
 	u32 dai_format;
 	snd_pcm_format_t sample_format;
@@ -244,6 +245,8 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	unsigned int sampling_rate;
 	unsigned int div_2, div_psr, div_pm;
 	int ret,bits;
+
+	ADAU_DBG("sai->is_stream_opened[TX]=%d sai->is_stream_opened[RX]=%d\n", sai->is_stream_opened[TX], sai->is_stream_opened[RX]);
 
 	sampling_rate = params_rate(params);
 	sample_format = params_format(params);
