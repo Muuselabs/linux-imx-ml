@@ -1013,11 +1013,15 @@ int adau1761_probe(struct device *dev, struct regmap *regmap,
 	}
 
 	ret = adau17x1_probe(dev, regmap, type, switch_mode, firmware_name);
-	if (ret)
+	if (ret) {
+		ADAU_DBG(" adau17x1_probe failed (rv=%d)\n", ret);
 		return ret;
+	}
 	ret = snd_soc_register_codec(dev, &adau1761_codec_driver, dai_drv, 1);
-	if (ret)
+	if (ret) {
+		ADAU_DBG(" snd_soc_register_codec failed (rv=%d)\n", ret);
 		return ret;
+	}
 
 	ADAU_DBG(" out %s\n",__func__);
 	return ret;
