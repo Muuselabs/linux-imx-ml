@@ -534,7 +534,7 @@ wl_cfg80211_add_iw_ie(struct bcm_cfg80211 *cfg, struct net_device *ndev, s32 bss
 static s32 wl_setup_wiphy(struct wireless_dev *wdev, struct device *dev, void *data);
 static void wl_free_wdev(struct bcm_cfg80211 *cfg);
 #ifdef CONFIG_CFG80211_INTERNAL_REGDB
-static int
+static void
 wl_cfg80211_reg_notifier(struct wiphy *wiphy, struct regulatory_request *request);
 #endif /* CONFIG_CFG80211_INTERNAL_REGDB */
 
@@ -8074,7 +8074,7 @@ s32 wl_mode_to_nl80211_iftype(s32 mode)
 }
 
 #ifdef CONFIG_CFG80211_INTERNAL_REGDB
-static int
+static void
 wl_cfg80211_reg_notifier(
 	struct wiphy *wiphy,
 	struct regulatory_request *request)
@@ -8084,7 +8084,7 @@ wl_cfg80211_reg_notifier(
 
 	if (!request || !cfg) {
 		WL_ERR(("Invalid arg\n"));
-		return -EINVAL;
+		return;// -EINVAL;
 	}
 
 	WL_DBG(("ccode: %c%c Initiator: %d\n",
@@ -8109,7 +8109,7 @@ wl_cfg80211_reg_notifier(
 		WL_ERR(("set country Failed :%d\n", ret));
 	}
 
-	return ret;
+	return;// ret;
 }
 #endif /* CONFIG_CFG80211_INTERNAL_REGDB */
 
