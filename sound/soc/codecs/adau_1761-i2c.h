@@ -61,7 +61,7 @@
 
 #undef USE_17X1_OPS
 
-#define _ADAU_DBG
+//#define _ADAU_DBG
 
 #ifdef _ADAU_DBG
 #define  ADAU_DBG(format, ...) printk("[ADAU] " format, ## __VA_ARGS__)
