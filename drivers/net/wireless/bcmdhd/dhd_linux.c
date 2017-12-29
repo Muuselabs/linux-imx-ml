@@ -6838,12 +6838,14 @@ void dhd_get_customized_country_code(struct net_device *dev, char *country_iso_c
 	dhd_info_t *dhdinfo = *(dhd_info_t **)netdev_priv(dev);
 	get_customized_country_code(dhdinfo->adapter, country_iso_code, cspec);
 }
+
 void dhd_bus_country_set(struct net_device *dev, wl_country_t *cspec, bool notify)
 {
 	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(dev);
 	if (dhd && dhd->pub.up) {
 		memcpy(&dhd->pub.dhd_cspec, cspec, sizeof(wl_country_t));
 #ifdef WL_CFG80211
+		printk("dhd_bus_country_set %s as %s rev %d\n", cspec->country_abbrev, cspec->ccode, cspec->rev);
 		wl_update_wiphybands(NULL, notify);
 #endif
 	}

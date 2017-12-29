@@ -436,7 +436,9 @@ int wldev_set_country(
 	wl_country_t cspec = {{0}, 0, {0}};
 	scb_val_t scbval;
 	char smbuf[WLC_IOCTL_SMLEN];
-
+	
+	printk("wldev_set_country %s\n", country_code ? country_code : "NULL");
+	
 	if (!country_code)
 		return error;
 

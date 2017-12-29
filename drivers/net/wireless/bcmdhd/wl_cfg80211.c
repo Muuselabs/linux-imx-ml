@@ -11776,6 +11776,8 @@ static int wl_construct_reginfo(struct bcm_cfg80211 *cfg, s32 bw_cap)
 	u8 *pbuf = NULL;
 	bool dfs_radar_disabled = FALSE;
 
+	printk("%s enter\n", __FUNCTION__);
+	
 #define LOCAL_BUF_LEN 1024
 	pbuf = kzalloc(LOCAL_BUF_LEN, GFP_KERNEL);
 
@@ -11945,6 +11947,8 @@ s32 wl_update_wiphybands(struct bcm_cfg80211 *cfg, bool notify)
 	s32 cur_band = -1;
 	struct ieee80211_supported_band *bands[NUM_NL80211_BANDS] = {NULL, };
 
+	printk("%s enter\n", __FUNCTION__);
+	
 	if (cfg == NULL) {
 		cfg = g_bcm_cfg;
 		mutex_lock(&cfg->usr_sync);
@@ -12037,6 +12041,7 @@ s32 wl_update_wiphybands(struct bcm_cfg80211 *cfg, bool notify)
 	wiphy = bcmcfg_to_wiphy(cfg);
 	nband = bandlist[0];
 
+	printk("Going over band lists...\n");
 	for (i = 1; i <= nband && i < ARRAYSIZE(bandlist); i++) {
 		index = -1;
 		if (bandlist[i] == WLC_BAND_5G && __wl_band_5ghz_a.n_channels > 0) {
@@ -12192,7 +12197,8 @@ static s32 __wl_cfg80211_up(struct bcm_cfg80211 *cfg)
 	struct wireless_dev *wdev = ndev->ieee80211_ptr;
 
 	WL_DBG(("In\n"));
-
+	printk("%s enter\n", __FUNCTION__);
+	
 	err = dhd_config_dongle(cfg);
 	if (unlikely(err))
 		return err;
@@ -12248,6 +12254,8 @@ static s32 __wl_cfg80211_down(struct bcm_cfg80211 *cfg)
 	dhd_pub_t *dhd =  (dhd_pub_t *)(cfg->pub);
 #endif /* PROP_TXSTATUS_VSDB */
 	WL_DBG(("In\n"));
+	printk("%s enter\n", __FUNCTION__);
+	
 	/* Delete pm_enable_work */
 	wl_add_remove_pm_enable_work(cfg, FALSE, WL_HANDLER_DEL);
 
