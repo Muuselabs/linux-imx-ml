@@ -18,11 +18,13 @@
  * into the region of the HVS that it has allocated for us.
  */
 
+#include <drm/drm_atomic.h>
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_fb_cma_helper.h>
+#include <drm/drm_plane_helper.h>
+
 #include "vc4_drv.h"
 #include "vc4_regs.h"
-#include "drm_atomic_helper.h"
-#include "drm_fb_cma_helper.h"
-#include "drm_plane_helper.h"
 
 enum vc4_scaling_mode {
 	VC4_SCALING_NONE,
@@ -83,7 +85,6 @@ static const struct hvs_format {
 	u32 hvs; /* HVS_FORMAT_* */
 	u32 pixel_order;
 	bool has_alpha;
-	bool flip_cbcr;
 } hvs_formats[] = {
 	{
 		.drm = DRM_FORMAT_XRGB8888, .hvs = HVS_PIXEL_FORMAT_RGBA8888,
@@ -118,30 +119,52 @@ static const struct hvs_format {
 		.pixel_order = HVS_PIXEL_ORDER_ABGR, .has_alpha = false,
 	},
 	{
+		.drm = DRM_FORMAT_RGB888, .hvs = HVS_PIXEL_FORMAT_RGB888,
+		.pixel_order = HVS_PIXEL_ORDER_XRGB, .has_alpha = false,
+	},
+	{
+		.drm = DRM_FORMAT_BGR888, .hvs = HVS_PIXEL_FORMAT_RGB888,
+		.pixel_order = HVS_PIXEL_ORDER_XBGR, .has_alpha = false,
+	},
+	{
 		.drm = DRM_FORMAT_YUV422,
 		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV422_3PLANE,
+		.pixel_order = HVS_PIXEL_ORDER_XYCBCR,
 	},
 	{
 		.drm = DRM_FORMAT_YVU422,
 		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV422_3PLANE,
-		.flip_cbcr = true,
+		.pixel_order = HVS_PIXEL_ORDER_XYCRCB,
 	},
 	{
 		.drm = DRM_FORMAT_YUV420,
 		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV420_3PLANE,
+		.pixel_order = HVS_PIXEL_ORDER_XYCBCR,
 	},
 	{
 		.drm = DRM_FORMAT_YVU420,
 		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV420_3PLANE,
-		.flip_cbcr = true,
+		.pixel_order = HVS_PIXEL_ORDER_XYCRCB,
 	},
 	{
 		.drm = DRM_FORMAT_NV12,
 		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV420_2PLANE,
+		.pixel_order = HVS_PIXEL_ORDER_XYCBCR,
+	},
+	{
+		.drm = DRM_FORMAT_NV21,
+		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV420_2PLANE,
+		.pixel_order = HVS_PIXEL_ORDER_XYCRCB,
 	},
 	{
 		.drm = DRM_FORMAT_NV16,
 		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV422_2PLANE,
+		.pixel_order = HVS_PIXEL_ORDER_XYCBCR,
+	},
+	{
+		.drm = DRM_FORMAT_NV61,
+		.hvs = HVS_PIXEL_FORMAT_YCBCR_YUV422_2PLANE,
+		.pixel_order = HVS_PIXEL_ORDER_XYCRCB,
 	},
 };
 
@@ -498,8 +521,8 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 	u32 ctl0_offset = vc4_state->dlist_count;
 	const struct hvs_format *format = vc4_get_hvs_format(fb->pixel_format);
 	int num_planes = drm_format_num_planes(format->drm);
-	u32 scl0, scl1;
-	u32 lbm_size;
+	u32 scl0, scl1, pitch0;
+	u32 lbm_size, tiling = SCALER_CTL0_TILING_LINEAR;
 	unsigned long irqflags;
 	int ret, i;
 
@@ -540,11 +563,41 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 		scl1 = vc4_get_scl_field(state, 0);
 	}
 
+	switch (fb->modifier[0]) {
+	case DRM_FORMAT_MOD_NONE:
+		tiling = SCALER_CTL0_TILING_LINEAR;
+		pitch0 = VC4_SET_FIELD(fb->pitches[0], SCALER_SRC_PITCH);
+		break;
+
+	case DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED: {
+		/* For T-tiled, the FB pitch is "how many bytes from
+		 * one row to the next, such that pitch * tile_h ==
+		 * tile_size * tiles_per_row."
+		 */
+		u32 tile_size_shift = 12;
+		u32 tile_h_shift = 5;
+		u32 tiles_w = fb->pitches[0] >> (tile_size_shift - tile_h_shift);
+
+		tiling = SCALER_CTL0_TILING_256B_OR_T;
+
+		pitch0 = (VC4_SET_FIELD(0, SCALER_PITCH0_TILE_Y_OFFSET) |
+			  VC4_SET_FIELD(0, SCALER_PITCH0_TILE_WIDTH_L) |
+			  VC4_SET_FIELD(tiles_w, SCALER_PITCH0_TILE_WIDTH_R));
+		break;
+	}
+
+	default:
+		DRM_DEBUG_KMS("Unsupported FB tiling flag 0x%16llx",
+			      (long long)fb->modifier[0]);
+		return -EINVAL;
+	}
+
 	/* Control word */
 	vc4_dlist_write(vc4_state,
 			SCALER_CTL0_VALID |
 			(format->pixel_order << SCALER_CTL0_ORDER_SHIFT) |
 			(format->hvs << SCALER_CTL0_PIXEL_FORMAT_SHIFT) |
+			VC4_SET_FIELD(tiling, SCALER_CTL0_TILING) |
 			(vc4_state->is_unity ? SCALER_CTL0_UNITY : 0) |
 			VC4_SET_FIELD(scl0, SCALER_CTL0_SCL0) |
 			VC4_SET_FIELD(scl1, SCALER_CTL0_SCL1));
@@ -584,22 +637,18 @@ static int vc4_plane_mode_set(struct drm_plane *plane,
 	 * The pointers may be any byte address.
 	 */
 	vc4_state->ptr0_offset = vc4_state->dlist_count;
-	if (!format->flip_cbcr) {
-		for (i = 0; i < num_planes; i++)
-			vc4_dlist_write(vc4_state, vc4_state->offsets[i]);
-	} else {
-		WARN_ON_ONCE(num_planes != 3);
-		vc4_dlist_write(vc4_state, vc4_state->offsets[0]);
-		vc4_dlist_write(vc4_state, vc4_state->offsets[2]);
-		vc4_dlist_write(vc4_state, vc4_state->offsets[1]);
-	}
+	for (i = 0; i < num_planes; i++)
+		vc4_dlist_write(vc4_state, vc4_state->offsets[i]);
 
 	/* Pointer Context Word 0/1/2: Written by the HVS */
 	for (i = 0; i < num_planes; i++)
 		vc4_dlist_write(vc4_state, 0xc0c0c0c0);
 
-	/* Pitch word 0/1/2 */
-	for (i = 0; i < num_planes; i++) {
+	/* Pitch word 0 */
+	vc4_dlist_write(vc4_state, pitch0);
+
+	/* Pitch word 1/2 */
+	for (i = 1; i < num_planes; i++) {
 		vc4_dlist_write(vc4_state,
 				VC4_SET_FIELD(fb->pitches[i], SCALER_SRC_PITCH));
 	}
@@ -769,18 +818,17 @@ vc4_update_plane(struct drm_plane *plane,
 	if (!plane_state)
 		goto out;
 
-	/* If we're changing the cursor contents, do that in the
-	 * normal vblank-synced atomic path.
-	 */
-	if (fb != plane_state->fb)
-		goto out;
-
 	/* No configuring new scaling in the fast path. */
 	if (crtc_w != plane_state->crtc_w ||
 	    crtc_h != plane_state->crtc_h ||
 	    src_w != plane_state->src_w ||
 	    src_h != plane_state->src_h) {
 		goto out;
+	}
+
+	if (fb != plane_state->fb) {
+		drm_atomic_set_fb_for_plane(plane->state, fb);
+		vc4_plane_async_set_fb(plane, fb);
 	}
 
 	/* Set the cursor's position on the screen.  This is the

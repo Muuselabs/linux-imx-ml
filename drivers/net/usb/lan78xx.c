@@ -31,6 +31,7 @@
 #include <linux/mdio.h>
 #include <net/ip6_checksum.h>
 #include <linux/microchipphy.h>
+#include <linux/of_net.h>
 #include "lan78xx.h"
 
 #define DRIVER_AUTHOR	"WOOJUNG HUH <woojung.huh@microchip.com>"
@@ -873,7 +874,8 @@ static int lan78xx_read_otp(struct lan78xx_net *dev, u32 offset,
 			offset += 0x100;
 		else
 			ret = -EINVAL;
-		ret = lan78xx_read_raw_otp(dev, offset, length, data);
+		if (!ret)
+			ret = lan78xx_read_raw_otp(dev, offset, length, data);
 	}
 
 	return ret;
@@ -1638,6 +1640,14 @@ static void lan78xx_init_mac_address(struct lan78xx_net *dev)
 	u32 addr_lo, addr_hi;
 	int ret;
 	u8 addr[6];
+	const u8 *mac_addr;
+
+	/* maybe the boot loader passed the MAC address in devicetree */
+	mac_addr = of_get_mac_address(dev->udev->dev.of_node);
+	if (mac_addr) {
+		ether_addr_copy(addr, mac_addr);
+		goto set_mac_addr;
+	}
 
 	ret = lan78xx_read_reg(dev, RX_ADDRL, &addr_lo);
 	ret = lan78xx_read_reg(dev, RX_ADDRH, &addr_hi);
@@ -1666,6 +1676,7 @@ static void lan78xx_init_mac_address(struct lan78xx_net *dev)
 					  "MAC address set to random addr");
 			}
 
+set_mac_addr:
 			addr_lo = addr[0] | (addr[1] << 8) |
 				  (addr[2] << 16) | (addr[3] << 24);
 			addr_hi = addr[4] | (addr[5] << 8);
@@ -2205,6 +2216,12 @@ static int lan78xx_reset(struct lan78xx_net *dev)
 
 	ret = lan78xx_read_reg(dev, HW_CFG, &buf);
 	buf |= HW_CFG_MEF_;
+
+	/* If no valid EEPROM and no valid OTP, enable the LEDs by default */
+	if (lan78xx_read_eeprom(dev, 0, 0, NULL) &&
+	    lan78xx_read_otp(dev, 0, 0, NULL))
+	    buf |= HW_CFG_LED0_EN_ | HW_CFG_LED1_EN_;
+
 	ret = lan78xx_write_reg(dev, HW_CFG, buf);
 
 	ret = lan78xx_read_reg(dev, USB_CFG0, &buf);
@@ -2300,7 +2317,7 @@ static void lan78xx_init_stats(struct lan78xx_net *dev)
 	dev->stats.rollover_max.eee_tx_lpi_transitions = 0xFFFFFFFF;
 	dev->stats.rollover_max.eee_tx_lpi_time = 0xFFFFFFFF;
 
-	lan78xx_defer_kevent(dev, EVENT_STAT_UPDATE);
+	set_bit(EVENT_STAT_UPDATE, &dev->flags);
 }
 
 static int lan78xx_open(struct net_device *net)

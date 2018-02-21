@@ -1746,6 +1746,10 @@ void serial8250_tx_chars(struct uart_8250_port *up)
 		if ((up->capabilities & UART_CAP_HFIFO) &&
 		    (serial_in(up, UART_LSR) & BOTH_EMPTY) != BOTH_EMPTY)
 			break;
+		/* The BCM2835 MINI UART THRE bit is really a not-full bit. */
+		if ((up->capabilities & UART_CAP_MINI) &&
+		    !(serial_in(up, UART_LSR) & UART_LSR_THRE))
+			break;
 	} while (--count > 0);
 
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
@@ -2557,6 +2561,12 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 	unsigned long flags;
 	unsigned int baud, quot, frac = 0;
 
+	if (up->capabilities & UART_CAP_MINI) {
+		termios->c_cflag &= ~(CSTOPB | PARENB | PARODD | CMSPAR);
+		if ((termios->c_cflag & CSIZE) == CS5 ||
+		    (termios->c_cflag & CSIZE) == CS6)
+			termios->c_cflag = (termios->c_cflag & ~CSIZE) | CS7;
+	}
 	cval = serial8250_compute_lcr(up, termios->c_cflag);
 
 	baud = serial8250_get_baud_rate(port, termios, old);
