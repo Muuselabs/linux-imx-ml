@@ -68,6 +68,10 @@ u32 hw_read_otgsc(struct ci_hdrc *ci, u32 mask)
 			val &= ~OTGSC_ID; /* host */
 		else
 			val |= OTGSC_ID; /* device */
+		if (cable->enabled)
+			val |= OTGSC_IDIE;
+		else
+			val &= ~OTGSC_IDIE;
 
 		if (cable->enabled)
 			val |= OTGSC_IDIE;
@@ -176,9 +180,9 @@ void ci_handle_vbus_change(struct ci_hdrc *ci)
 	if (!ci->is_otg)
 		return;
 
-	if (hw_read_otgsc(ci, OTGSC_BSV))
+	if (hw_read_otgsc(ci, OTGSC_BSV) && !ci->vbus_active)
 		usb_gadget_vbus_connect(&ci->gadget);
-	else
+	else if (!hw_read_otgsc(ci, OTGSC_BSV) && ci->vbus_active)
 		usb_gadget_vbus_disconnect(&ci->gadget);
 }
 
@@ -191,6 +195,22 @@ void ci_handle_vbus_change(struct ci_hdrc *ci)
  * This function returns an error code if timeout
  */
 static int hw_wait_vbus_lower_bsv(struct ci_hdrc *ci)
+{
+	unsigned long elapse = jiffies + msecs_to_jiffies(5000);
+	u32 mask = OTGSC_BSV;
+
+	while (hw_read_otgsc(ci, mask)) {
+		if (time_after(jiffies, elapse)) {
+			dev_err(ci->dev, "timeout waiting for %08x in OTGSC\n",
+					mask);
+			return -ETIMEDOUT;
+		}
+		msleep(20);
+	}
+
+	return 0;
+}
+
 {
 	unsigned long elapse = jiffies + msecs_to_jiffies(5000);
 	u32 mask = OTGSC_BSV;

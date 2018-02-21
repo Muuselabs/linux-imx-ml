@@ -331,6 +331,7 @@ struct sdma_channel {
 	unsigned int			event_id0;
 	unsigned int			event_id1;
 	enum dma_slave_buswidth		word_size;
+	unsigned int			buf_ptail;
 	unsigned int			period_len;
 	unsigned int			pc_from_device, pc_to_device;
 	unsigned int			device_to_device;
@@ -1445,6 +1446,8 @@ static struct sdma_desc *sdma_transfer_init(struct sdma_channel *sdmac,
 		goto err_out;
 
 	sdmac->status = DMA_IN_PROGRESS;
+	sdmac->buf_ptail = 0;
+	sdmac->chn_real_count = 0;
 	sdmac->direction = direction;
 	sdmac->flags = 0;
 	sdmac->chn_count = 0;
@@ -1685,6 +1688,8 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 	if (!desc)
 		goto err_out;
 
+	sdmac->buf_ptail = 0;
+	sdmac->chn_real_count = 0;
 	sdmac->period_len = period_len;
 	sdmac->flags |= IMX_DMA_SG_LOOP;
 

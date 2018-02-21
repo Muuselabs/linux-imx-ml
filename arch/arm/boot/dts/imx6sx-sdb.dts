@@ -19,24 +19,7 @@
 	};
 };
 
-&cpu0 {
-	operating-points = <
-		/* kHz    uV */
-		996000  1250000
-		792000  1175000
-		396000  1175000
-		198000  1175000
-		>;
-	fsl,soc-operating-points = <
-		/* ARM kHz      SOC uV */
-		996000	1250000
-		792000	1175000
-		396000	1175000
-		198000  1175000
-	>;
 	fsl,arm-soc-shared = <1>;
-};
-
 &reg_arm {
 	vin-supply = <&sw1a_reg>;
 	regulator-allow-bypass;
