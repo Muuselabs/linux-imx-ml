@@ -220,7 +220,6 @@ static int is_targeted(struct usb_device *dev)
 
 	/* add other match criteria here ... */
 
-	report_errors(dev);
 	return 0;
 }
 
