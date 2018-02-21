@@ -1,0 +1,58 @@
+/*
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright (C) 2017, Muuselabs NV/SA
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/* this DTS is designed to be as minimal as possible to bring up the board
+ * and be able to debug it.
+ * 
+ * Only memory interfaces, debug uart and debug USB
+ * 
+ */
+
+/dts-v1/;
+
+#define DEBUG_UART_ENABLED
+
+#include <dt-bindings/input/input.h>
+#include "imx6ull.dtsi"
+
+#include "ml-jooki-common.dtsi"
+
+/ {
+	model = "Muuselabs Jooki 2017 minimal";
+	
+	// NOTE: the amount of memory can be board-specific
+	memory {
+		reg = <0x80000000 0x20000000>;
+	};
+};
+
+&usbotg1 {
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
+&usbphy1 {
+	tx-d-cal = <0x5>;
+};
+
+&iomuxc {
+	pinctrl_i2c1: i2c1grp {
+		fsl,pins = < /* PP: crosschecked sch VC3.0  20170714 */
+		MX6UL_PAD_UART4_TX_DATA__I2C1_SCL 0x4001b8b0
+		MX6UL_PAD_UART4_RX_DATA__I2C1_SDA 0x4001b8b0 
+		>;
+	};
+};
+
+&i2c1 {
+	clock-frequency = <400000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c1>;
+	status = "okay";
+};

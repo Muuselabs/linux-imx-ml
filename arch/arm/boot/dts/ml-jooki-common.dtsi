@@ -1,0 +1,153 @@
+/*
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright (C) 2017, Muuselabs NV/SA
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/* note that this cannot be used on its own as it requires the 
+ * proper includes to define the pins and nodes for the SOC used
+ */
+
+/ {
+	model = "Muuselabs Jooki 2017 base";
+	compatible = "mlabs,jooki", "fsl,imx6ull";
+	
+#ifdef DEBUG_UART_ENABLED
+	chosen {
+		stdout-path = &uart1;
+	};
+#endif
+	
+	// TODO (PP): check how this interacts with u-boot CMA parameter
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+		
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x14000000>;
+			linux,cma-default;
+		};
+	};
+};
+
+&clks {
+	assigned-clocks = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
+	/*assigned-clock-rates = <786432000>;*/
+	/*assigned-clock-rates = <812851200>;*/
+	assigned-clock-rates = <903168000>;
+};
+
+&gpc {
+	fsl,cpu_pupscr_sw2iso = <0x1>;
+	fsl,cpu_pupscr_sw = <0x0>;
+	fsl,cpu_pdnscr_iso2sw = <0x1>;
+	fsl,cpu_pdnscr_iso = <0x1>;
+	fsl,ldo-bypass = <0>; /* DCDC, ldo-enable */
+};
+
+/* Debug UART
+ * Please don't re-assing these to another function to
+ * avoid opening a can of worms. The assumption that UART1
+ * is used for debug comes back in a lot of places. 
+ */
+&iomuxc {
+	pinctrl_uart1: uart1grp {
+		fsl,pins = <
+		MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX 0x1b0b1
+		MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX 0x1b0b1
+		>;
+	};
+};
+
+#ifdef DEBUG_UART_ENABLED
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1>;
+	status = "okay";
+};
+#endif
+
+/* Watchdog
+ * The the software reset functionality is implemented by the watchdog
+ * TODO: is this really needed?
+ */
+&wdog1 {
+	fsl,wdog_b;
+};
+
+/* NAND flash */
+&iomuxc {
+	pinctrl_gpmi_nand_1: gpmi-nand-1 {
+		fsl,pins = <
+		MX6UL_PAD_NAND_CLE__RAWNAND_CLE         0xb0b0
+		MX6UL_PAD_NAND_ALE__RAWNAND_ALE         0xb0b0
+		MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B       0xb0b0
+		MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B 0xb000
+		MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B     0xb0b0
+		MX6UL_PAD_NAND_CE1_B__RAWNAND_CE1_B     0xb0b0
+		MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B       0xb0b0
+		MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B       0xb0b0
+		MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00   0xb0b0
+		MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01   0xb0b0
+		MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02   0xb0b0
+		MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03   0xb0b0
+		MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04   0xb0b0
+		MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05   0xb0b0
+		MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06   0xb0b0
+		MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07   0xb0b0
+		>;
+	};
+};
+
+&gpmi {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_gpmi_nand_1>;
+	status = "okay";
+	nand-on-flash-bbt;
+	
+	partition@0 {
+		label = "spl";
+		reg = <0x00000000 0x00200000>;
+	};
+	
+	partition@1 {
+		label = "uboot-env";
+		reg = <0x00200000 0x00200000>;
+	};
+	
+	partition@2 {
+		label = "uboot-1";
+		reg = <0x00400000 0x00200000>;
+	};
+	
+	partition@3 {
+		label = "kernel-1";
+		reg = <0x00800000 0x00400000>;
+	};
+	
+	partition@4 {
+		label = "uboot-2";
+		reg = <0x00600000 0x00200000>;
+	};
+	
+	partition@5 {
+		label = "kernel-2";
+		reg = <0x00C00000 0x00400000>;
+	};
+	
+	partition@6 {
+		label = "ubifs";
+		reg = <0x01000000 0x19000000>;
+	};
+	
+	partition@7 {
+		label = "usrdata";
+		reg = <0x1A000000 0x05F00000>;
+	};
+};
