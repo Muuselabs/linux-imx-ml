@@ -228,7 +228,7 @@ int mmc_of_parse(struct mmc_host *host)
 	/* Parse Card Detection */
 	if (device_property_read_bool(dev, "non-removable")) {
 		host->caps |= MMC_CAP_NONREMOVABLE;
-		if (of_property_read_bool(np, "cd-post"))
+		if (device_property_read_bool(dev, "cd-post"))
 			host->caps2 |= MMC_CAP2_CD_POST;
 	} else {
 		cd_cap_invert = device_property_read_bool(dev, "cd-inverted");
@@ -301,7 +301,7 @@ int mmc_of_parse(struct mmc_host *host)
 	if (device_property_read_bool(dev, "wakeup-source") ||
 	    device_property_read_bool(dev, "enable-sdio-wakeup")) /* legacy */
 		host->pm_caps |= MMC_PM_WAKE_SDIO_IRQ;
-	if (device_get_property(dev, "pm-ignore-notify", NULL))
+	if (device_property_read_bool(dev, "pm-ignore-notify"))
 		host->pm_caps |= MMC_PM_IGNORE_PM_NOTIFY;
 	if (device_property_read_bool(dev, "mmc-ddr-1_8v"))
 		host->caps |= MMC_CAP_1_8V_DDR;
