@@ -72,7 +72,7 @@ static ssize_t vbus_state_show(struct kobject *kobj,
 {
 	uint32_t __iomem *membase = ioremap(0x020c81c0, 4);
 	uint32_t val = *membase;
-	printk(KERN_DEBUG "VBUS state 0x%08X!!!\n", val);
+	//printk(KERN_DEBUG "VBUS state 0x%08X!!!\n", val);
 	return sprintf(buf, "%c", (val & 0x04) ? '1' : '0');
 }
 
@@ -119,7 +119,6 @@ static int __init ml_imx6ull_addon_driver_init(void)
 		printk(KERN_INFO "Cannot allocate major number\n");
 		return -1;
 	}
-	printk(KERN_DEBUG "Major = %d Minor = %d \n", MAJOR(dev), MINOR(dev));
 
 	/*Creating cdev structure*/
 	cdev_init(&ml_imx6ull_addon_cdev, &fops);
@@ -155,7 +154,7 @@ static int __init ml_imx6ull_addon_driver_init(void)
 		printk(KERN_INFO "Cannot create sysfs file......\n");
 		goto r_sysfs;
 	}
-	printk(KERN_DEBUG "Device Driver Insert...Done!!!\n");
+	printk(KERN_DEBUG "Muuselabs i.MX6ULL add-on driver loaded\n");
 	return 0;
 
 r_sysfs:
@@ -178,7 +177,7 @@ void __exit ml_imx6ull_addon_driver_exit(void)
 	class_destroy(dev_class);
 	cdev_del(&ml_imx6ull_addon_cdev);
 	unregister_chrdev_region(dev, 1);
-	printk(KERN_DEBUG "Device Driver Remove...Done!!!\n");
+	printk(KERN_DEBUG "Muuselabs i.MX6ULL add-on driver unloaded\n");
 }
 
 module_init(ml_imx6ull_addon_driver_init);
