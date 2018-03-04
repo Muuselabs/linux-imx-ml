@@ -1,0 +1,23 @@
+#
+# Muuselabs custom drivers
+#
+
+menu "Muuselabs drivers"
+
+config MUUSELABS
+	bool "Muuselabs additional drivers"
+	help
+	  Say Y here if you want to compile additional drivers
+	  for Muuselabs systems
+
+if MUUSELABS
+
+config ML_IMX6ULL_ADDON
+	tristate "Muuselabs IMX6ULL addon driver"
+	help
+	  Say Y here to compile the Muuselabs IMX6ULL
+	  add-on driver.
+
+endif # MUUSELABS
+
+endmenu
