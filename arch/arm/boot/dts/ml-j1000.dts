@@ -191,6 +191,7 @@
 #endif
 
 /* WIFI / BT section */
+#ifdef WLAN_BCMDHD
 / {
 	regulators {
 		wlreg_on: fixedregulator@100 {
@@ -211,7 +212,57 @@
 #endif
 		wlreg_on-supply = <&wlreg_on>;
 	};
+	
 };
+
+&usdhc1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc1 &pinctrl_wifi &pinctrl_wifi_snvs>;
+	keep-power-in-suspend; // FIXME: needed?
+	enable-sdio-wakeup; // FIXME: needed?
+	no-1-8-v;
+	non-removable;
+	cd-post; 
+	pm-ignore-notify;
+	wifi-host; /* add hook for SD card detect mechanism for BCMDHD driver */
+	max-frequency = <20000000>; /* BCM43438 supports up to 20MHz SDIO */
+	status = "okay";
+};
+
+#else // !WLAN_BCMDHD => BRCMFMAC driver
+
+/ {
+	usdhc1_pwrseq: usdhc1_pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		reset-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>; /* PP: crosschecked sch VC4.0  20170829 (TODO: double check with HW */
+	};
+};
+
+&usdhc1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc1 &pinctrl_wifi &pinctrl_wifi_snvs>;
+	no-1-8-v;
+	non-removable;
+	mmc-pwrseq = <&usdhc1_pwrseq>;
+	cap-power-off-card;
+	
+	max-frequency = <20000000>; /* BCM43438 supports up to 20MHz SDIO */
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	
+	brcmf: bcrmf@1 {
+		
+		//interrupt-parent = <&pio>;
+		//interrupts = <10 8>; /* PH10 / EINT10 */
+		//interrupt-names = "host-wake";
+		
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
+};
+
+#endif // WLAN_BCMDHD
 
 &iomuxc {
 	j1000-wifi {
@@ -263,20 +314,6 @@
 #endif
 		};
 	};
-};
-
-&usdhc1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_usdhc1 &pinctrl_wifi &pinctrl_wifi_snvs>;
-	keep-power-in-suspend; // FIXME: needed?
-	enable-sdio-wakeup; // FIXME: needed?
-	no-1-8-v;
-	non-removable;
-	cd-post; 
-	pm-ignore-notify;
-	wifi-host; /* add hook for SD card detect mechanism for BCMDHD driver */
-	max-frequency = <20000000>; /* BCM43438 supports up to 20MHz SDIO */
-	status = "okay";
 };
 
 /* Bluetooth UART */
