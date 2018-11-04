@@ -253,7 +253,6 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	unsigned int channels;
 	unsigned int tx_mask, rx_mask;
 	unsigned int sampling_rate;
-	unsigned int div_2, div_psr, div_pm;
 	int ret,bits;
 
 	sampling_rate = params_rate(params);
@@ -653,7 +652,7 @@ irqreturn_t jeck_handler(int sig,void * data)
 
 }
 
-void workquerehandler(void *data)
+static void workquerehandler(struct work_struct *data)
 {
 	if( adau_priv.info->playstatus == 1 && \
 		adau_priv.info->stream == SNDRV_PCM_STREAM_PLAYBACK )
@@ -690,11 +689,7 @@ void workquerehandler(void *data)
 			USERCOMMAND, USERCOMMAND_UNMUTELMIC, 0, 0); /*unmute Local MIC */
 		snd_soc_dai_set_tdm_slot(adau_priv.info->card.rtd->codec_dai,
 			USERCOMMAND, USERCOMMAND_MUTEHPMIC, 0, 0); /*mute headphone MIC*/
-
-
 	}
-
-
 }
 
 static int imx_adau1761_probe(struct platform_device *pdev)
