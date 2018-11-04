@@ -125,34 +125,45 @@ static void imx_adau1761_amp_enable(struct imx_adau1761_data *data, int en)
 	struct gpio_desc *amp_sd = data->gpios[1]; 
 	struct gpio_desc *boosten = data->gpios[2]; 
     
+	if(amp_mute == NULL) {
+		pr_warn("Failed no amp_mute GPIO defined\n");
+	}
+
+	if(amp_sd == NULL) {
+		pr_warn("Failed no amp_sd GPIO defined\n");
+	}
+
+	if(boosten == NULL) {
+		pr_warn("Failed no boosten GPIO defined\n");
+	}
+
 	if(en) {
 		ADAU_DBG("turn on amp\n");        
 
 
 		// enable boost converter and un-mute amp
-		gpiod_set_value(boosten, AMPBOOSTENON);
+		if(boosten) gpiod_set_value(boosten, AMPBOOSTENON);
 
 		// sleep until the supply is ready
 		mdelay(10);
-        					// enable the amplifier
-		gpiod_set_value(amp_sd, AMPSDON);
+
+		// enable the amplifier
+		if (amp_sd) gpiod_set_value(amp_sd, AMPSDON);
 				
 		mdelay(200);
 
-        	gpiod_set_value(amp_mute, AMPMUTEOFF);
+		if(amp_mute) gpiod_set_value(amp_mute, AMPMUTEOFF);
 		//mdelay(50);
-		
 	} else {
 		ADAU_DBG("turn off amp\n");        
 		// mute amp and disable boost converter
-		gpiod_set_value(amp_mute, AMPMUTEON);
+		if(amp_mute) gpiod_set_value(amp_mute, AMPMUTEON);
 
 		mdelay(5);
-		gpiod_set_value(amp_sd, AMPSDOFF);
+		if(amp_sd) gpiod_set_value(amp_sd, AMPSDOFF);
 
 		mdelay(5);
-		gpiod_set_value(boosten, AMPBOOSTENOFF);
-
+		if(boosten) gpiod_set_value(boosten, AMPBOOSTENOFF);
 	}
 }
 
@@ -625,13 +636,17 @@ irqreturn_t jeck_handler(int sig,void * data)
 	int value;
 	struct imx_adau1761_data *adaudata = (struct imx_adau1761_data *)data;
 	disable_irq_nosync(sig);
-	value = gpiod_get_value(adaudata->gpios[3]);
-	ADAU_DBG("jeck sigle come in value:%d\n",value);	
-	
-	if(adaudata->jecksetenable != value ) {
-		adaudata->jecksetenable = value;
-		mdelay(5);
-		schedule_work(&adaudata->adauwq);
+	if(adaudata->gpios[3]) {
+		value = gpiod_get_value(adaudata->gpios[3]);
+		ADAU_DBG("jeck sigle come in value:%d\n",value);
+
+		if(adaudata->jecksetenable != value ) {
+			adaudata->jecksetenable = value;
+			mdelay(5);
+			schedule_work(&adaudata->adauwq);
+		}
+	} else {
+		pr_warn("No jack_detect gpio defined\n");
 	}
 	enable_irq(sig);
 	return IRQ_HANDLED;
@@ -739,6 +754,11 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 		goto fail;
 	}
 	jeck_detect = gpiod_get_index(&pdev->dev, "jeckdetect", 0);
+	if(!jeck_detect)
+	{
+		dev_warn(&pdev->dev, "failed to get gpio jack detect\n");
+	}
+
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data) {
 		ret = -ENOMEM;
