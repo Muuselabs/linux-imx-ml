@@ -759,9 +759,18 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto fail;
 	}
-	
-	adau_priv.info = data;
-	
+
+	data->gpios[0] = amp_mute;
+	data->gpios[1] = amp_sd;
+	data->gpios[2] = boosten;
+	data->gpios[3] = jeck_detect;
+
+	// mute amp and shutdown boost converter
+	gpiod_direction_output(amp_mute, AMPMUTEON);
+	gpiod_direction_output(amp_sd, AMPSDOFF);
+	gpiod_direction_output(boosten, AMPBOOSTENOFF);
+	gpiod_direction_input(jeck_detect);
+
 	data->codec_dev = codec_dev;
 
 	data->dai.name = "adau1x61";
@@ -777,10 +786,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	data->src_port = 2;
 	data->ext_port = 4;
 
-	data->gpios[0] = amp_mute;
-	data->gpios[1] = amp_sd;
-	data->gpios[2] = boosten;
-	data->gpios[3] = jeck_detect;
+	adau_priv.info = data;
 
 	imx_audmux_config_slv_mode(data->src_port, data->ext_port);
 
@@ -805,12 +811,6 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 	data->card.dapm_widgets = imx_dapm_widgets;
 	data->card.num_dapm_widgets = ARRAY_SIZE(imx_dapm_widgets);
 
-    // mute amp and shutdown boost converter
-    gpiod_direction_output(amp_mute, AMPMUTEON);
-    gpiod_direction_output(amp_sd, AMPSDOFF);
-    gpiod_direction_output(boosten, AMPBOOSTENOFF);
-    gpiod_direction_input(jeck_detect);
-    
 #ifndef USE_17X1_OPS
 	data->jeckdetirq = -1;
 	data->jecksetenable = -1;
@@ -821,7 +821,9 @@ static int imx_adau1761_probe(struct platform_device *pdev)
         int irqno;
 		ADAU_DBG(" init irq\n");
 		irqno = gpiod_to_irq(jeck_detect);
-		
+
+		INIT_WORK(&data->adauwq, workquerehandler);
+
 		if(irqno<0)
 			ADAU_DBG(" failed to get gpio jeckdetect\n");
 		else
@@ -833,10 +835,9 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 			disable_irq_nosync(data->jeckdetirq);
 			data->irqenable = 0;
 		}
-	} else 
+	} else {
 		ADAU_DBG(" failed to get gpio jeckdetect\n");
-	
-	INIT_WORK(&data->adauwq, workquerehandler);
+	}
 #endif
 	platform_set_drvdata(pdev, &data->card);
 	snd_soc_card_set_drvdata(&data->card, data);
@@ -852,6 +853,7 @@ static int imx_adau1761_probe(struct platform_device *pdev)
 			enable_irq(adau_priv.info->jeckdetirq);
 			adau_priv.info->irqenable = 1;
 	}
+
 	return 0;
 
 fail:
