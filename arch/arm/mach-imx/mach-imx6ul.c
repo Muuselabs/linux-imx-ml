@@ -37,6 +37,7 @@ static void __init imx6ul_enet_clk_init(void)
 
 }
 
+#ifdef KSZ8081_FIXUP
 static int ksz8081_phy_fixup(struct phy_device *dev)
 {
 	if (dev && dev->interface == PHY_INTERFACE_MODE_MII) {
@@ -67,6 +68,11 @@ static void __init imx6ul_enet_phy_init(void)
 	phy_register_fixup(PHY_ANY_ID, PHY_ID_KSZ8081_MNRN60, 0xffffffff, ksz8081_phy_fixup);
 	phy_register_fixup(PHY_ANY_ID, PHY_ID_KSZ8081_MNRN61, 0xffffffff, ksz8081_phy_fixup);
 }
+#else
+static void __init imx6ul_enet_phy_init(void)
+{
+}
+#endif
 
 #define OCOTP_CFG3			0x440
 #define OCOTP_CFG3_SPEED_SHIFT		16
