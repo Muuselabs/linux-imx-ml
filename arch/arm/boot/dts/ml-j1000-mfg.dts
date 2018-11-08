@@ -1,0 +1,232 @@
+/*
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright (C) 2017, Muuselabs NV/SA
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/* this DTS is designed to be as minimal as possible to bring up the board
+ * for manufacturing / rescue images.
+ * 
+ * Only memory interfaces, debug uart and debug USB
+ * 
+ */
+
+/dts-v1/;
+
+#define DEBUG_UART_ENABLED
+
+#include <dt-bindings/input/input.h>
+#include "imx6ull.dtsi"
+
+#include "ml-jooki-common.dtsi"
+
+/ {
+	model = "Muuselabs Jooki 2017 (J1000) MFG";
+	
+	// NOTE: the amount of memory can be board-specific
+	memory {
+		reg = <0x80000000 0x20000000>;
+	};
+};
+
+/* Serial interfaces
+ */
+&iomuxc {
+	j1000-peri {
+		pinctrl_i2c1: i2c1grp {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+			MX6UL_PAD_UART4_TX_DATA__I2C1_SCL 0x4001b8b0
+			MX6UL_PAD_UART4_RX_DATA__I2C1_SDA 0x4001b8b0 
+			>;
+		};
+		
+		pinctrl_i2c2: i2c2grp {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+			MX6UL_PAD_GPIO1_IO00__I2C2_SCL  0x4001b8b0
+			MX6UL_PAD_GPIO1_IO01__I2C2_SDA  0x4001b8b0
+			>;
+		};
+	};
+};
+
+&usbotg1 {
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
+&usbphy1 {
+	tx-d-cal = <0x5>;
+};
+
+&i2c1 {
+	clock-frequency = <400000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c1>;
+	status = "okay";
+};
+
+&i2c2 {
+	clock_frequency = <400000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";	
+};
+
+/* Keys control */
+/ {
+	keys { /* PP: crosschecked sch VC4.0  20170829 */
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpio_keys &pinctrl_gpio_keys_snvs>;
+
+		user1 {
+			label = "Volume Up";
+			gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEUP>;
+		};
+		user2 {
+			label = "Volume Down";
+			gpios = <&gpio2 1 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEDOWN>;
+		};
+		user3 {
+			label = "Previous";
+			gpios = <&gpio2 2 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_PREVIOUSSONG>;
+		};
+		user4 {
+			label = "Next";
+			gpios = <&gpio1 30 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_NEXTSONG>;
+		};
+		user5 {
+			label = "Play";
+			gpios = <&gpio5 4 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_PLAY>;
+		};
+		user6 {
+			label = "Airplane Slider";
+			gpios = <&gpio1 19 GPIO_ACTIVE_HIGH>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+		/*
+		user8 {
+			label = "test key";
+			gpios = <&gpio2 14 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_ESC>;
+		};
+		*/
+	};
+};
+
+&iomuxc {
+	j1000-keys {
+		pinctrl_gpio_keys: gpio_keysgrp {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+				MX6UL_PAD_ENET1_RX_DATA0__GPIO2_IO00      0x0001B0B0 /* BTN_VOLUP */
+				MX6UL_PAD_ENET1_RX_DATA1__GPIO2_IO01      0x0001B0B0 /* BTN_VOLDN */
+				MX6UL_PAD_ENET1_RX_EN__GPIO2_IO02         0x0001B0B0 /* BTN_PREV  */
+				MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30       0x0001B0B0 /* BTN_NEXT  */
+				MX6UL_PAD_UART1_CTS_B__GPIO1_IO18         0x000100B0 /* BTN_RADIO   */
+				MX6UL_PAD_UART1_RTS_B__GPIO1_IO19         0x000100B0 /* BTN_AIR */
+			>;
+		};
+	};
+};
+
+&iomuxc_snvs {
+	j1000-keys-snvs {
+		pinctrl_gpio_keys_snvs: gpio_keysgrp_snvs {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+				MX6ULL_PAD_SNVS_TAMPER4__GPIO5_IO04        0x0001B0A0 /* BTN_PLAY */
+			>;
+		};
+	};
+};
+
+&snvs_pwrkey {
+	linux,keycode = <KEY_POWER2>;
+	status = "okay";
+};
+
+
+/* Power management and control
+ */
+
+&snvs_poweroff {
+	status = "okay";
+};
+
+&i2c2 {
+	rtc2: pcf85063@51 {
+		compatible = "nxp,pcf85063";
+		reg = <0x51>;
+	};
+};
+
+&adc1 {
+	/*vref-supply = <&reg_vcc_3v3_mcu>;*/
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_adc1>;
+	num-channels = <4>;
+	status = "okay";
+};
+
+&iomuxc {
+	j1000-pwr {
+		pinctrl_adc1: adc1grp {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+				MX6UL_PAD_GPIO1_IO03__GPIO1_IO03          0x000010B0 /* VBAT_DIV */
+			>;
+		};
+		pinctrl_pwr: pwrgrp {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+				MX6UL_PAD_GPIO1_IO07__GPIO1_IO07          0x00003008 /* ADC_ON */
+			>;
+		};
+		
+	};
+};
+
+&iomuxc_snvs {
+	j1000-pwr-snvs {
+		pinctrl_pwr_snvs: gpio_pwr_snvs {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+				MX6ULL_PAD_SNVS_TAMPER5__GPIO5_IO05       0x000190B0 /* CHG_STA_B */
+			>;
+		};
+	};
+};
+
+/* micro-sd card
+ */
+&iomuxc {
+	j1000-usd {
+		pinctrl_usdhc2: usdhc2grp {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+				
+			MX6UL_PAD_CSI_HSYNC__USDHC2_CMD     0x1010
+			MX6UL_PAD_CSI_VSYNC__USDHC2_CLK     0x1010
+			MX6UL_PAD_CSI_DATA00__USDHC2_DATA0  0x1010
+			MX6UL_PAD_CSI_DATA01__USDHC2_DATA1  0x1010
+			MX6UL_PAD_CSI_DATA02__USDHC2_DATA2  0x1010
+			MX6UL_PAD_CSI_DATA03__USDHC2_DATA3  0x1010
+
+			MX6UL_PAD_CSI_MCLK__GPIO4_IO17		0x1b0b1	/* SD card detect */
+			>;
+		};
+	};
+};
+
+&usdhc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc2>;
+	no-1-8-v;
+	keep-power-in-suspend;
+	cd-gpios = <&gpio4 17 GPIO_ACTIVE_LOW>;
+	max-frequency = <5000000>; /* limit frequency so that SD cards actually mount */
+	status = "okay";
+};
