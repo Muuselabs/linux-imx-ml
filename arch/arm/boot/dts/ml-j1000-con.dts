@@ -7,6 +7,14 @@
  * published by the Free Software Foundation.
  */
 
+/* important to use ifndef as this file is included by other files with
+ * newer partition tables
+ */
+#ifndef ML_JOOKI_PARTITION_VERSION
+#define ML_JOOKI_PARTITION_VERSION 0
+#endif
+
 #define DEBUG_UART_ENABLED
+
 #include "ml-j1000.dts"
 

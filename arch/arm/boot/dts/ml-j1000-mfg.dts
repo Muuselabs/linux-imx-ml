@@ -14,6 +14,13 @@
  * 
  */
 
+/* important to use ifndef as this file is included by other files with
+ * newer partition tables
+ */
+#ifndef ML_JOOKI_PARTITION_VERSION
+#define ML_JOOKI_PARTITION_VERSION 0
+#endif
+
 /dts-v1/;
 
 #define DEBUG_UART_ENABLED
