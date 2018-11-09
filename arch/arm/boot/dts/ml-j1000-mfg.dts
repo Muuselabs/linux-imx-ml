@@ -39,6 +39,45 @@
 	};
 };
 
+/* Dynamic Voltage and Frequency Scaling
+ * requires a proper spec of the reg_gpio_dvfs
+ * which is board specific in its GPIO assignment
+ */
+/ {
+	regulators {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reg_gpio_dvfs: regulator-gpio {
+			compatible = "regulator-gpio";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_dvfs>;
+			regulator-min-microvolt = <1300000>;
+			regulator-max-microvolt = <1400000>;
+			regulator-name = "gpio_dvfs";
+			regulator-type = "voltage";
+			// PP: crosschecked sch VC4.0  20170829
+			gpios = <&gpio5 0 GPIO_ACTIVE_HIGH>;
+			states = <1300000 0x1 1400000 0x0>;
+		};
+	};
+};
+
+&cpu0 {
+	dc-supply = <&reg_gpio_dvfs>;
+};
+
+&iomuxc_snvs {
+	j1000-dvfs {
+		pinctrl_dvfs: dvfsgrp {
+			fsl,pins = < /* PP: crosschecked sch VC4.0  20170829 */
+			MX6ULL_PAD_SNVS_TAMPER0__GPIO5_IO00      0x79
+			>;
+		};
+	};
+};
+
 /* Serial interfaces
  */
 &iomuxc {
