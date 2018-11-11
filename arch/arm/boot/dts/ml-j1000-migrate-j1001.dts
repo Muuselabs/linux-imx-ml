@@ -1,0 +1,33 @@
+/*
+ * Copyright (C) 2016 Freescale Semiconductor, Inc.
+ * Copyright (C) 2017, Muuselabs NV/SA
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/* this DTS file is used to migrate from J1000 partitioning to J1001
+ * it will have the "new" partition table available for the linux device
+ * names, but will have the new usrdata partition stop where the old usrdata
+ * begins.
+ * the old usrdata is then also made available (mtd8)
+ * we can then copy the old contents from usrdata to the new partition and
+ * then resize the new ubi volume on the next boot.
+ */
+
+#define ML_JOOKI_PARTITION_VERSION 0
+#include "ml-j1001-mfg.dts"
+
+&gpmi {
+	// new usrdata start, but smaller partition
+	partition@7 {
+		label = "usrdata";
+		reg = <0x11000000 0x09000000>;
+	};
+	// old usrdata partition
+	partition@8 {
+		label = "usrdata";
+		reg = <0x1A000000 0x05F00000>;
+	};
+};
