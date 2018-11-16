@@ -14,6 +14,8 @@
 #define ML_JOOKI_PARTITION_VERSION 0
 #endif
 
+#define WLAN_BCMDHD
+
 /dts-v1/;
 
 #include <dt-bindings/input/input.h>
