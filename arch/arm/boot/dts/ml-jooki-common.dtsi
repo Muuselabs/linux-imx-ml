@@ -172,7 +172,7 @@
 
 	partition@0 {
 		label = "spl";
-		reg = <0x00000000 0x00080000>;
+		reg = <0x00000000 0x00200000>;
 	};
 
 	partition@1 {
@@ -182,32 +182,27 @@
 
 	partition@2 {
 		label = "uboot";
-		reg = <0x00080000 0x00100000>;
+		reg = <0x00400000 0x00200000>;
 	};
 
 	partition@3 {
-		label = "fdt";
-		reg = <0x00180000 0x00080000>;
-	};
-
-	partition@4 {
 		label = "kernel";
-		reg = <0x00400000 0x00300000>;
+		reg = <0x00600000 0x00300000>;
 	};
 
 	partition@5 {
 		label = "rescue";
-		reg = <0x00700000 0x00900000>;
+		reg = <0x00900000 0x00700000>;
 	};
 
 	partition@6 {
 		label = "ubifs";
-		reg = <0x01000000 0x10000000>;
+		reg = <0x01000000 0x09000000>;
 	};
 
 	partition@7 {
 		label = "usrdata";
-		reg = <0x11000000 0x0EF00000>;
+		reg = <0x0A000000 0x16000000>;
 	};
 };
 #else
