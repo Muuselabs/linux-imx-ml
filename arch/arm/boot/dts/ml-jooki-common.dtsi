@@ -190,9 +190,14 @@
 		reg = <0x00600000 0x00300000>;
 	};
 
-	partition@5 {
+	partition@4 {
 		label = "rescue";
-		reg = <0x00900000 0x00700000>;
+		reg = <0x00900000 0x006E0000>;
+	};
+
+	partition@5 {
+		label = "fdt";
+		reg = <0x00FE0000 0x00020000>;
 	};
 
 	partition@6 {
