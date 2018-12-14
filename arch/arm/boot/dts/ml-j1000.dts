@@ -191,6 +191,7 @@
 #endif
 
 /* WIFI / BT section */
+/* TODO(wdm) This is for old WiFi driver. Remove until the else */
 #ifdef WLAN_BCMDHD
 / {
 	regulators {
