@@ -264,7 +264,7 @@ static int wifi_get_external_mac_addr(unsigned char *buf)
 	int ret = 0;
 	int i;
 	struct file *fp = NULL;
-	unsigned char c_mac[MAC_ADDRESS_LEN];
+	unsigned char c_mac[MAC_ADDRESS_LEN+1];
 	char fname[] = "/etc/mac";
 	
 	DHD_TRACE(("%s Enter\n", __func__));
@@ -282,6 +282,8 @@ static int wifi_get_external_mac_addr(unsigned char *buf)
 		return 1;
 	}
 	dhd_os_close_image(fp);
+	
+	c_mac[MAC_ADDRESS_LEN] = '\0';
 	DHD_ERROR(("%s: read %s\n", __func__, c_mac));
 	
 	for (i = 0; i < MAC_ADDRESS_LEN; i += 2) {
