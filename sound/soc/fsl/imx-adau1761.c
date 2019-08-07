@@ -242,7 +242,6 @@ static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
 	unsigned int channels;
 	unsigned int tx_mask, rx_mask;
 	unsigned int sampling_rate;
-	unsigned int div_2, div_psr, div_pm;
 	int ret,bits;
 
 	sampling_rate = params_rate(params);
