@@ -118,6 +118,7 @@ int configure_gpt_dma(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+EXPORT_SYMBOL(configure_gpt_dma);
 
 int clear_gpt_dma(struct snd_pcm_substream *substream,
 			 struct fsl_dma_workaround_info *info)
@@ -156,6 +157,8 @@ int clear_gpt_dma(struct snd_pcm_substream *substream,
 
 	return 0;
 }
+
+EXPORT_SYMBOL(clear_gpt_dma);
 
 struct fsl_dma_workaround_info *
 fsl_dma_workaround_alloc_info(const char *pool_name, struct device *dma_dev,
@@ -229,6 +232,8 @@ fsl_dma_workaround_alloc_info(const char *pool_name, struct device *dma_dev,
 	return info;
 }
 
+EXPORT_SYMBOL(fsl_dma_workaround_alloc_info);
+
 void fsl_dma_workaround_free_info(struct fsl_dma_workaround_info *info,
 				  struct device *dma_dev)
 {
@@ -252,3 +257,5 @@ void fsl_dma_workaround_free_info(struct fsl_dma_workaround_info *info,
 
 	dma_pool_destroy(info->tcd_pool);
 }
+
+EXPORT_SYMBOL(fsl_dma_workaround_free_info);
