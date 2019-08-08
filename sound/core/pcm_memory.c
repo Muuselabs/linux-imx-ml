@@ -102,6 +102,8 @@ int snd_pcm_lib_preallocate_free(struct snd_pcm_substream *substream)
 	return 0;
 }
 
+EXPORT_SYMBOL(snd_pcm_lib_preallocate_free);
+
 /**
  * snd_pcm_lib_preallocate_free_for_all - release all pre-allocated buffers on the pcm
  * @pcm: the pcm instance
