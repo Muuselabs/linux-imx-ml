@@ -56,6 +56,7 @@
 #define SDIO_FUNC1_BLOCKSIZE		64
 #define SDIO_FUNC2_BLOCKSIZE		512
 #define SDIO_4373_FUNC2_BLOCKSIZE	256
+#define SDIO_4359_FUNC2_BLOCKSIZE	256
 /* Maximum milliseconds to wait for F2 to come up */
 #define SDIO_WAIT_F2RDY	3000
 
@@ -1053,8 +1054,15 @@ static int brcmf_sdiod_probe(struct brcmf_sdio_dev *sdiodev)
 		goto out;
 	}
 
-	if (sdiodev->func[0]->device == SDIO_DEVICE_ID_CYPRESS_4373) {
+	switch (sdiodev->func[0]->device) {
+	case SDIO_DEVICE_ID_CYPRESS_4373:
 		f2_blksz = SDIO_4373_FUNC2_BLOCKSIZE;
+		break;
+	case SDIO_DEVICE_ID_BROADCOM_4359:
+		f2_blksz = SDIO_4359_FUNC2_BLOCKSIZE;
+		break;
+	default:
+		break;
 	}
 
 	ret = sdio_set_block_size(sdiodev->func[2], f2_blksz);
@@ -1111,12 +1119,12 @@ static const struct sdio_device_id brcmf_sdmmc_ids[] = {
  	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_43364),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_4335_4339),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_4339),
-	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_43428),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_43430),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_4345),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_43455),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_4354),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_4356),
+	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_BROADCOM_4359),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_CYPRESS_4373),
 	BRCMF_SDIO_DEVICE(SDIO_DEVICE_ID_CYPRESS_43012),
 	{ /* end: all zeroes */ }
@@ -1243,14 +1251,6 @@ static void brcmf_ops_sdio_remove(struct sdio_func *func)
 	brcmf_dbg(SDIO, "Exit\n");
 }
 
-static void brcmf_ops_sdio_shutdown(struct device *dev)
-{
-	struct sdio_func *func = container_of(dev, struct sdio_func, dev);
-
-	brcmf_ops_sdio_remove(func);
-	return;
-}
-
 void brcmf_sdio_wowl_config(struct device *dev, bool enabled)
 {
 	struct brcmf_bus *bus_if = dev_get_drvdata(dev);
@@ -1334,7 +1334,6 @@ static struct sdio_driver brcmf_sdmmc_driver = {
 #ifdef CONFIG_PM_SLEEP
 		.pm = &brcmf_sdio_pm_ops,
 #endif	/* CONFIG_PM_SLEEP */
-		.shutdown = brcmf_ops_sdio_shutdown,
 	},
 };
 

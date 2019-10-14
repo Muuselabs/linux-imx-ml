@@ -650,6 +650,9 @@ struct survey_info {
  *	CFG80211_MAX_WEP_KEYS WEP keys
  * @wep_tx_key: key index (0..3) of the default TX static WEP key
  * @psk: PSK (for devices supporting 4-way-handshake offload)
+ * @sae_pwd: password for SAE authentication (for devices supporting SAE
+ *	offload)
+ * @sae_pwd_len: length of SAE password (for devices supporting SAE offload)
  */
 struct cfg80211_crypto_settings {
 	u32 wpa_versions;
@@ -664,6 +667,8 @@ struct cfg80211_crypto_settings {
 	struct key_params *wep_keys;
 	int wep_tx_key;
 	const u8 *psk;
+	const u8 *sae_pwd;
+	u16 sae_pwd_len;
 };
 
 /**
@@ -3277,7 +3282,6 @@ enum wiphy_flags {
 	WIPHY_FLAG_SUPPORTS_5_10_MHZ		= BIT(22),
 	WIPHY_FLAG_HAS_CHANNEL_SWITCH		= BIT(23),
 	WIPHY_FLAG_HAS_STATIC_WEP		= BIT(24),
-	WIPHY_FLAG_DFS_OFFLOAD                  = BIT(25)
 };
 
 /**
@@ -3711,6 +3715,9 @@ struct wiphy_iftype_ext_capab {
  */
 struct wiphy {
 	/* assign these fields before you register the wiphy */
+
+#define WIPHY_COMPAT_PAD_SIZE	2048
+	u8 padding[WIPHY_COMPAT_PAD_SIZE];
 
 	/* permanent MAC address(es) */
 	u8 perm_addr[ETH_ALEN];
@@ -4514,32 +4521,6 @@ const u8 *cfg80211_find_vendor_ie(unsigned int oui, int oui_type,
 int regulatory_hint(struct wiphy *wiphy, const char *alpha2);
 
 /**
- * regulatory_hint_user - hint to the wireless core a regulatory domain
- * which the driver has received from an application
- * @alpha2: the ISO/IEC 3166 alpha2 the driver claims its regulatory domain
- *  should be in. If @rd is set this should be NULL. Note that if you
- *  set this to NULL you should still set rd->alpha2 to some accepted
- *  alpha2.
- * @user_reg_hint_type: the type of user regulatory hint.
- *
- * Wireless drivers can use this function to hint to the wireless core
- * the current regulatory domain as specified by trusted applications,
- * it is the driver's responsibilty to estbalish which applications it
- * trusts.
- *
- * The wiphy should be registered to cfg80211 prior to this call.
- * For cfg80211 drivers this means you must first use wiphy_register(),
- * for mac80211 drivers you must first use ieee80211_register_hw().
- *
- * Drivers should check the return value, its possible you can get
- * an -ENOMEM or an -EINVAL.
- *
- * Return: 0 on success. -ENOMEM, -EINVAL.
- */
-int regulatory_hint_user(const char *alpha2,
-             enum nl80211_user_reg_hint_type user_reg_hint_type);
-
-/**
  * regulatory_set_wiphy_regd - set regdom info for self managed drivers
  * @wiphy: the wireless device we want to process the regulatory domain on
  * @rd: the regulatory domain informatoin to use for this wiphy
@@ -5309,6 +5290,8 @@ static inline void cfg80211_testmode_event(struct sk_buff *skb, gfp_t gfp)
  *	not known. This value is used only if @status < 0 to indicate that the
  *	failure is due to a timeout and not due to explicit rejection by the AP.
  *	This value is ignored in other cases (@status >= 0).
+ * @authorized: Indicates whether the connection is ready to transport
+ *	data packets.
  */
 struct cfg80211_connect_resp_params {
 	int status;
@@ -5326,6 +5309,7 @@ struct cfg80211_connect_resp_params {
 	size_t pmk_len;
 	const u8 *pmkid;
 	enum nl80211_timeout_reason timeout_reason;
+	bool authorized;
 };
 
 /**
@@ -5505,6 +5489,23 @@ struct cfg80211_roam_info {
  */
 void cfg80211_roamed(struct net_device *dev, struct cfg80211_roam_info *info,
 		     gfp_t gfp);
+
+/**
+ * cfg80211_port_authorized - notify cfg80211 of successful security association
+ *
+ * @dev: network device
+ * @bssid: the BSSID of the AP
+ * @gfp: allocation flags
+ *
+ * This function should be called by a driver that supports 4 way handshake
+ * offload after a security association was successfully established (i.e.,
+ * the 4 way handshake was completed successfully). The call to this function
+ * should be preceded with a call to cfg80211_connect_result(),
+ * cfg80211_connect_done(), cfg80211_connect_bss() or cfg80211_roamed() to
+ * indicate the 802.11 association.
+ */
+void cfg80211_port_authorized(struct net_device *dev, const u8 *bssid,
+			      gfp_t gfp);
 
 /**
  * cfg80211_disconnected - notify cfg80211 that connection was dropped
@@ -6214,16 +6215,6 @@ void cfg80211_nan_func_terminated(struct wireless_dev *wdev,
 
 /* ethtool helper */
 void cfg80211_get_drvinfo(struct net_device *dev, struct ethtool_drvinfo *info);
-
-/**
- * cfg80211_is_gratuitous_arp_unsolicited_na - packet is grat. ARP/unsol. NA
- * @skb: the input packet, must be an ethernet frame already
- *
- * Return: %true if the packet is a gratuitous ARP or unsolicited NA packet.
- * This is used to drop packets that shouldn't occur because the AP implements
- * a proxy service.
- */
-bool cfg80211_is_gratuitous_arp_unsolicited_na(struct sk_buff *skb);
 
 /* Logging, debugging and troubleshooting/diagnostic helpers. */
 
