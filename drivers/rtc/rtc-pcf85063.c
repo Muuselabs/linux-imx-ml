@@ -16,6 +16,7 @@
 #include <linux/of_device.h>
 #include <linux/pm_wakeirq.h>
 #include <linux/regmap.h>
+#include <linux/gpio/consumer.h>
 
 /*
  * Information for this driver was pulled from the following datasheets.
@@ -37,6 +38,7 @@
 #define PCF85063_REG_CTRL2		0x01
 #define PCF85063_CTRL2_AF		BIT(6)
 #define PCF85063_CTRL2_AIE		BIT(7)
+#define PCF85063_CTRL2_CLKOUT 0x07
 
 #define PCF85063_REG_OFFSET		0x02
 #define PCF85063_OFFSET_SIGN_BIT	6	/* 2's complement sign bit */
@@ -54,11 +56,13 @@ struct pcf85063_config {
 	struct regmap_config regmap;
 	unsigned has_alarms:1;
 	unsigned force_cap_7000:1;
+	unsigned has_clkout:1;
 };
 
 struct pcf85063 {
 	struct rtc_device	*rtc;
 	struct regmap		*regmap;
+	struct gpio_desc *	clkout_en;
 };
 
 static int pcf85063_rtc_read_time(struct device *dev, struct rtc_time *tm)
@@ -318,6 +322,28 @@ static int pcf85063_ioctl(struct device *dev, unsigned int cmd,
 	}
 }
 
+static int pcf85063_clkout_control(struct pcf85063 *pcf85063, bool enable)
+{
+	int ret;
+
+	dev_dbg(&pcf85063->rtc->dev, "%s\n", __func__);
+	/* software disable */
+	if (enable)
+		ret = regmap_update_bits(pcf85063->regmap, PCF85063_REG_CTRL2,
+								 PCF85063_CTRL2_CLKOUT, 0);
+		else
+			ret = regmap_update_bits(pcf85063->regmap, PCF85063_REG_CTRL2,
+									 PCF85063_CTRL2_CLKOUT, 0x07);
+
+	/* hardware disable if defined */
+	if(pcf85063->clkout_en) {
+		printk("%s clkout", enable?"enable":"disable");
+		gpiod_set_value_cansleep(pcf85063->clkout_en, enable);
+	}
+
+	return ret;
+}
+
 static const struct rtc_class_ops pcf85063_rtc_ops = {
 	.read_time	= pcf85063_rtc_read_time,
 	.set_time	= pcf85063_rtc_set_time,
@@ -372,6 +398,7 @@ static const struct pcf85063_config pcf85063a_config = {
 		.max_register = 0x11,
 	},
 	.has_alarms = 1,
+	.has_clkout = 1,
 };
 
 static const struct pcf85063_config pcf85063tp_config = {
@@ -380,6 +407,7 @@ static const struct pcf85063_config pcf85063tp_config = {
 		.val_bits = 8,
 		.max_register = 0x0a,
 	},
+	.has_clkout = 0,
 };
 
 static const struct pcf85063_config rv8263_config = {
@@ -390,6 +418,7 @@ static const struct pcf85063_config rv8263_config = {
 	},
 	.has_alarms = 1,
 	.force_cap_7000 = 1,
+	.has_clkout = 0,
 };
 
 static int pcf85063_probe(struct i2c_client *client)
@@ -451,6 +480,9 @@ static int pcf85063_probe(struct i2c_client *client)
 					dev_err(&pcf85063->rtc->dev,
 						"failed to enable irq wake\n");
 			}
+		} else {
+			dev_warn(&pcf85063->rtc->dev,
+					 "enabling alarms without IRQ\n");
 		}
 		pcf85063->rtc->ops = &pcf85063_rtc_ops_alarm;
 	} else {
@@ -459,6 +491,19 @@ static int pcf85063_probe(struct i2c_client *client)
 	}
 
 	pcf85063_rtc_clear_irq_flags(pcf85063);
+
+	if(config->has_clkout) {
+		dev_info(&client->dev,
+				 "registering rtc as clock source\n");
+		pcf85063->clkout_en = devm_gpiod_get(&client->dev, "clkout_en",
+											GPIOD_OUT_LOW);
+		if (IS_ERR(pcf85063->clkout_en)) {
+			err = PTR_ERR(pcf85063->clkout_en);
+			dev_warn(&client->dev, "could not get clkout_en gpio: %d", err);
+			pcf85063->clkout_en = NULL;
+		}
+		pcf85063_clkout_control(pcf85063, 1);
+	}
 
 	return rtc_register_device(pcf85063->rtc);
 }
