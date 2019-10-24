@@ -211,6 +211,15 @@ static int pcf85063_rtc_alarm_irq_enable(struct device *dev,
 				  enabled ? PCF85063_CTRL2_AIE : 0);
 }
 
+static void pcf85063_rtc_clear_irq_flags(void *dev_id)
+{
+	struct pcf85063 *pcf85063 = dev_id;
+
+	regmap_update_bits(pcf85063->regmap, PCF85063_REG_CTRL2,
+			   PCF85063_CTRL2_AIE | PCF85063_CTRL2_AF,
+			   0);
+}
+
 static irqreturn_t pcf85063_rtc_handle_irq(int irq, void *dev_id)
 {
 	struct pcf85063 *pcf85063 = dev_id;
@@ -223,9 +232,7 @@ static irqreturn_t pcf85063_rtc_handle_irq(int irq, void *dev_id)
 
 	if (val & PCF85063_CTRL2_AF) {
 		rtc_update_irq(pcf85063->rtc, 1, RTC_IRQF | RTC_AF);
-		regmap_update_bits(pcf85063->regmap, PCF85063_REG_CTRL2,
-				   PCF85063_CTRL2_AIE | PCF85063_CTRL2_AF,
-				   0);
+		pcf85063_rtc_clear_irq_flags(dev_id);
 		return IRQ_HANDLED;
 	}
 
@@ -428,23 +435,30 @@ static int pcf85063_probe(struct i2c_client *client)
 	pcf85063->rtc->ops = &pcf85063_rtc_ops;
 	pcf85063->rtc->uie_unsupported = 1;
 
-	if (config->has_alarms && client->irq > 0) {
-		err = devm_request_threaded_irq(&client->dev, client->irq,
-						NULL, pcf85063_rtc_handle_irq,
-						IRQF_TRIGGER_LOW | IRQF_ONESHOT,
-						"pcf85063", pcf85063);
-		if (err) {
-			dev_warn(&pcf85063->rtc->dev,
-				 "unable to request IRQ, alarms disabled\n");
-		} else {
-			pcf85063->rtc->ops = &pcf85063_rtc_ops_alarm;
-			device_init_wakeup(&client->dev, true);
-			err = dev_pm_set_wake_irq(&client->dev, client->irq);
-			if (err)
-				dev_err(&pcf85063->rtc->dev,
-					"failed to enable irq wake\n");
+	if (config->has_alarms) {
+		if(client->irq > 0) {
+			err = devm_request_threaded_irq(&client->dev, client->irq,
+							NULL, pcf85063_rtc_handle_irq,
+							IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+							"pcf85063", pcf85063);
+			if (err) {
+				dev_warn(&pcf85063->rtc->dev,
+					 "unable to request IRQ, alarms might not work\n");
+			} else {
+				device_init_wakeup(&client->dev, true);
+				err = dev_pm_set_wake_irq(&client->dev, client->irq);
+				if (err)
+					dev_err(&pcf85063->rtc->dev,
+						"failed to enable irq wake\n");
+			}
 		}
+		pcf85063->rtc->ops = &pcf85063_rtc_ops_alarm;
+	} else {
+		dev_info(&pcf85063->rtc->dev,
+			 "alarms not available\n");
 	}
+
+	pcf85063_rtc_clear_irq_flags(pcf85063);
 
 	return rtc_register_device(pcf85063->rtc);
 }
