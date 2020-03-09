@@ -34,6 +34,8 @@
 #define SNVS_LPPGDR                 0x64
 #define SNVS_BASE_ADDR   0x020CC000
 
+#define XTALOSC24M_MISC0_ADDR 0x020C8150
+
 dev_t dev = 0;
 static struct class *dev_class;
 static struct cdev ml_imx6ull_addon_cdev;
@@ -238,6 +240,22 @@ static ssize_t vbus_state_show(struct kobject *kobj,
 struct kobj_attribute vbus_state_attr =
 	__ATTR(vbus_state, 0444, vbus_state_show, NULL);
 
+/*
+ * Check for the presence of the 32kHz external clock
+ * by checking whether the clock source of the IMX SNVS
+ * clock is set to internal clock.
+ */
+static ssize_t extclk_state_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
+{
+	uint32_t __iomem *membase = ioremap(XTALOSC24M_MISC0_ADDR, 4);
+	uint32_t val = *membase;
+	/* check for external clock presence */
+	return sprintf(buf, "%c", (val & 0x20000000) ? '1' : '0');
+}
+
+struct kobj_attribute extclk_state_attr =
+	__ATTR(extclk_state, 0444, extclk_state_show, NULL);
 
 /*
  * show SNVS general purpose registers
@@ -440,6 +458,7 @@ static int __init ml_imx6ull_addon_driver_init(void)
 
 	/*Creating sysfs file for ml_imx6ull_addon_value*/
 	REG_ATTR(vbus_state);
+	REG_ATTR(extclk_state);
 	REG_ATTR(wake_state);
 	REG_ATTR(gpr_state);
 	REG_ATTR(fastboot_state);
@@ -454,6 +473,7 @@ static int __init ml_imx6ull_addon_driver_init(void)
 r_sysfs:
 	kobject_put(kobj_ref);
 	UNREG_ATTR(vbus_state);
+	UNREG_ATTR(extclk_state);
 	UNREG_ATTR(wake_state);
 	UNREG_ATTR(gpr_state);
 	UNREG_ATTR(fastboot_state);
@@ -474,6 +494,7 @@ void __exit ml_imx6ull_addon_driver_exit(void)
 {
 	kobject_put(kobj_ref);
 	sysfs_remove_file(kernel_kobj, &vbus_state_attr.attr);
+	sysfs_remove_file(kernel_kobj, &extclk_state_attr.attr);
 	sysfs_remove_file(kernel_kobj, &wake_state_attr.attr);
 	sysfs_remove_file(kernel_kobj, &gpr_state_attr.attr);
 	sysfs_remove_file(kernel_kobj, &fastboot_state_attr.attr);
