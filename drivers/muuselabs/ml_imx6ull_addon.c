@@ -222,6 +222,10 @@ static void save_tamper(tamper_regs_t new, tamper_regs_t mask) {
 	memcpy(membase, &new, 4*4);
 }
 
+/*
+ * Check for the presence of 5V at the USB VBUS pin
+ * (= charger plugged in)
+ */
 static ssize_t vbus_state_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
@@ -235,6 +239,9 @@ struct kobj_attribute vbus_state_attr =
 	__ATTR(vbus_state, 0444, vbus_state_show, NULL);
 
 
+/*
+ * show SNVS general purpose registers
+ */
 static ssize_t gpr_state_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
@@ -246,6 +253,9 @@ static ssize_t gpr_state_show(struct kobject *kobj,
 struct kobj_attribute gpr_state_attr =
 	__ATTR(gpr_state, 0444, gpr_state_show, NULL);
 
+/*
+ * SNVS registers that allow to wake the system on events
+ */
 static ssize_t wake_state_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
@@ -479,5 +489,5 @@ module_exit(ml_imx6ull_addon_driver_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Pieter Palmers <pieter@muuselabs.com>");
-MODULE_DESCRIPTION("SysFs driver for IMX VBUS detect");
+MODULE_DESCRIPTION("SysFs driver for Muuselabs specific IMX functionalities");
 MODULE_VERSION("1.0");
