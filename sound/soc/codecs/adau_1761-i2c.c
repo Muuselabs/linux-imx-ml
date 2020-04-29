@@ -818,8 +818,6 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 		case USERCOMMAND_MUTELOUT: {
 			ADAU_DBG("mute lineout");
 			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
-			sigmadsp_write_i2c(local_client,0x402B, 1,DAC_CHAIN);
-			sigmadsp_write_i2c(local_client,0x402C, 1,DAC_CHAIN);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut[0]);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut[0]);
 			
@@ -827,8 +825,6 @@ static int adau1761_set_dai_tdm_slot(struct snd_soc_dai *dai,
 		case USERCOMMAND_UNMUTELOUT: {
 			ADAU_DBG("unmute lineout");
 			sigmadsp_write_i2c( local_client, 0x4000, 1, CLK_PLL );
-			sigmadsp_write_i2c(local_client,0x402B, 1,DAC_CHAIN);
-			sigmadsp_write_i2c(local_client,0x402C, 1,DAC_CHAIN);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_LEFT_VOL, 1, LineOut[1]);
 			sigmadsp_write_i2c(local_client,ADAU1761_PLAY_LINE_RIGHT_VOL, 1, LineOut[1]);
 		};break;
