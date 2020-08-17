@@ -17,6 +17,7 @@
 #include <linux/smp.h>
 #include <linux/stddef.h>
 #include <linux/export.h>
+#include <linux/kallsyms.h>
 
 #include <asm/bugs.h>
 #include <asm/cpu.h>
@@ -1334,16 +1335,52 @@ platform:
 
 static inline void cpu_probe_ingenic(struct cpuinfo_mips *c, unsigned int cpu)
 {
+	unsigned int errorpc;
+	static unsigned int showerrorpc[NR_CPUS];
+
+	if(showerrorpc[cpu] == 0) {
+		__asm__ __volatile__ (
+				"mfc0  %0, $30,  0   \n\t"
+				"nop                  \n\t"
+				:"=r"(errorpc)
+				:);
+
+		printk("CPU%d RESET ERROR PC:%08X\n", cpu,errorpc);
+		if(kernel_text_address(errorpc))
+			print_ip_sym(errorpc);
+		showerrorpc[cpu] = 1;
+	}
+
 	decode_configs(c);
 	/* JZRISC does not implement the CP0 counter. */
+	/* INGENIC RISC does not implement the CP0 counter. */
 	c->options &= ~MIPS_CPU_COUNTER;
 	BUG_ON(!__builtin_constant_p(cpu_has_counter) || cpu_has_counter);
-	switch (c->processor_id & PRID_IMP_MASK) {
-	case PRID_IMP_JZRISC:
+
+	switch (c->processor_id & PRID_IMP_PROCESSOR_ID_MSK) {
+	case PRID_IMP_XBURST:
+	{
+		unsigned int config7;
 		c->cputype = CPU_JZRISC;
 		c->writecombine = _CACHE_UNCACHED_ACCELERATED;
-		__cpu_name[cpu] = "Ingenic JZRISC";
+		c->ases |= MIPS_ASE_XBURSTMXU;
+		__cpu_name[cpu] = "Xburst";
+		/*
+		 * When CPU enters the long cycle, it will reduce the CPU speed to save power.
+		 * Set cp0 config7 bit 4 to disable this feature
+		 * This feature will cause bogoMips and loops_per_jiffy calculate in error
+		 */
+		config7 = read_c0_config7();
+		config7 |= (1 << 4);
+		write_c0_config7(config7);
+	}
 		break;
+	case PRID_IMP_XBURST2:
+	{
+		c->cputype = CPU_JZRISC;
+		__cpu_name[cpu] = "Ingenic XBurst@II";
+		break;
+	}
 	default:
 		panic("Unknown Ingenic Processor ID!");
 		break;
@@ -1482,6 +1519,7 @@ void cpu_probe(void)
 	case PRID_COMP_INGENIC_D0:
 	case PRID_COMP_INGENIC_D1:
 	case PRID_COMP_INGENIC_E1:
+	case PRID_COMP_INGENIC_13:
 		cpu_probe_ingenic(c, cpu);
 		break;
 	case PRID_COMP_NETLOGIC:
