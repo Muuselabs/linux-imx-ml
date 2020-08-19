@@ -1,0 +1,18 @@
+config COMMON_CLK_INGENIC
+	bool
+	depends on MACH_XBURST || MACH_XBURST2
+	select MFD_SYSCON
+	select COMMON_CLK
+
+config CLK_X1000
+	bool
+	depends on SOC_X1000
+	select COMMON_CLK_INGENIC
+	help
+	  build the ingenic x1000 soc clock driver.
+config CLK_X2000
+	bool
+	depends on SOC_X2000
+	select COMMON_CLK_INGENIC
+	help
+	  build the ingenic x2000 soc clock driver.

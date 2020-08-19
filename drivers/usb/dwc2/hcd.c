@@ -302,6 +302,7 @@ void dwc2_hcd_disconnect(struct dwc2_hsotg *hsotg)
 		if (hsotg->op_state != OTG_STATE_A_SUSPEND) {
 			dev_dbg(hsotg->dev, "Disconnect: PortPower off\n");
 			dwc2_writel(0, hsotg->regs + HPRT0);
+			usb_phy_vbus_off(hsotg->uphy);
 		}
 
 		dwc2_disable_host_interrupts(hsotg);
@@ -356,6 +357,7 @@ void dwc2_hcd_stop(struct dwc2_hsotg *hsotg)
 	/* Turn off the vbus power */
 	dev_dbg(hsotg->dev, "PortPower off\n");
 	dwc2_writel(0, hsotg->regs + HPRT0);
+	usb_phy_vbus_off(hsotg->uphy);
 }
 
 /* Caller must hold driver lock */
@@ -1367,6 +1369,7 @@ static void dwc2_conn_id_status_change(struct work_struct *work)
 
 	/* B-Device connector (Device Mode) */
 	if (gotgctl & GOTGCTL_CONID_B) {
+		usb_phy_vbus_off(hsotg->uphy);
 		/* Wait for switch to device mode */
 		dev_dbg(hsotg->dev, "connId B\n");
 		while (!dwc2_is_device_mode(hsotg)) {
@@ -1382,12 +1385,16 @@ static void dwc2_conn_id_status_change(struct work_struct *work)
 			dev_err(hsotg->dev,
 				"Connection id status change timed out\n");
 		hsotg->op_state = OTG_STATE_B_PERIPHERAL;
-		dwc2_core_init(hsotg, false, -1);
+		dwc2_core_init(hsotg, false, -1, false);
 		dwc2_enable_global_interrupts(hsotg);
 		spin_lock_irqsave(&hsotg->lock, flags);
-		dwc2_hsotg_core_init_disconnected(hsotg, false);
-		spin_unlock_irqrestore(&hsotg->lock, flags);
-		dwc2_hsotg_core_connect(hsotg);
+		if(hsotg->enabled){
+			dwc2_hsotg_core_init_disconnected(hsotg, false);
+			spin_unlock_irqrestore(&hsotg->lock, flags);
+			dwc2_hsotg_core_connect(hsotg);
+		}else{
+			spin_unlock_irqrestore(&hsotg->lock, flags);
+		}
 	} else {
 		/* A-Device connector (Host Mode) */
 		dev_dbg(hsotg->dev, "connId A\n");
@@ -1409,7 +1416,7 @@ static void dwc2_conn_id_status_change(struct work_struct *work)
 
 		hsotg->op_state = OTG_STATE_A_HOST;
 		/* Initialize the Core for Host mode */
-		dwc2_core_init(hsotg, false, -1);
+		dwc2_core_init(hsotg, false, -1, false);
 		dwc2_enable_global_interrupts(hsotg);
 		dwc2_hcd_start(hsotg);
 	}
@@ -2382,10 +2389,13 @@ static void _dwc2_hcd_stop(struct usb_hcd *hcd)
 
 static int _dwc2_hcd_suspend(struct usb_hcd *hcd)
 {
+	int ret = 0;
 	struct dwc2_hsotg *hsotg = dwc2_hcd_to_hsotg(hcd);
 	unsigned long flags;
-	int ret = 0;
 	u32 hprt0;
+
+	if(!dwc2_is_host_mode(hsotg))
+		return ret;
 
 	spin_lock_irqsave(&hsotg->lock, flags);
 
@@ -2407,6 +2417,7 @@ static int _dwc2_hcd_suspend(struct usb_hcd *hcd)
 		hprt0 |= HPRT0_SUSP;
 		hprt0 &= ~HPRT0_PWR;
 		dwc2_writel(hprt0, hsotg->regs + HPRT0);
+		usb_phy_vbus_off(hsotg->uphy);
 	}
 
 	/* Enter hibernation */
@@ -2432,18 +2443,20 @@ skip_power_saving:
 	hsotg->lx_state = DWC2_L2;
 unlock:
 	spin_unlock_irqrestore(&hsotg->lock, flags);
-
 	return ret;
 }
 
 static int _dwc2_hcd_resume(struct usb_hcd *hcd)
 {
+
+	int ret = 0;
 	struct dwc2_hsotg *hsotg = dwc2_hcd_to_hsotg(hcd);
 	unsigned long flags;
-	int ret = 0;
+
+	if(!dwc2_is_host_mode(hsotg))
+		return ret;
 
 	spin_lock_irqsave(&hsotg->lock, flags);
-
 	if (hsotg->lx_state != DWC2_L2)
 		goto unlock;
 
@@ -2491,6 +2504,7 @@ static int _dwc2_hcd_resume(struct usb_hcd *hcd)
 		 * Clear Port Enable and Port Status changes.
 		 * Enable Port Power.
 		 */
+		usb_phy_vbus_on(hsotg->uphy);
 		dwc2_writel(HPRT0_PWR | HPRT0_CONNDET |
 				HPRT0_ENACHG, hsotg->regs + HPRT0);
 		/* Wait for controller to detect Port Connect */
@@ -2500,7 +2514,6 @@ static int _dwc2_hcd_resume(struct usb_hcd *hcd)
 	return ret;
 unlock:
 	spin_unlock_irqrestore(&hsotg->lock, flags);
-
 	return ret;
 }
 
@@ -3058,7 +3071,7 @@ int dwc2_hcd_init(struct dwc2_hsotg *hsotg, int irq)
 	dwc2_disable_global_interrupts(hsotg);
 
 	/* Initialize the DWC_otg core, and select the Phy type */
-	retval = dwc2_core_init(hsotg, true, irq);
+	retval = dwc2_core_init(hsotg, true, irq, true);
 	if (retval)
 		goto error2;
 

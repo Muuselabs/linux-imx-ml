@@ -1452,7 +1452,14 @@ asmlinkage void do_cpu(struct pt_regs *regs)
 		break;
 
 	case 2:
+#ifdef CONFIG_MACH_XBURST2
+	        /* Processing of MXA instructions needs setting MSA enable. */
+		err = enable_restore_fp_context(1);
+		if (err)
+			force_sig(SIGILL, current);
+#else
 		raw_notifier_call_chain(&cu2_chain, CU2_EXCEPTION, regs);
+#endif
 		break;
 	}
 
