@@ -562,6 +562,11 @@ static int icdc_d3_resume(struct snd_soc_codec *codec)
 }
 #endif
 
+static const struct dev_pm_ops icdc_d3_pm = {
+	SET_RUNTIME_PM_OPS(icdc_d3_suspend, icdc_d3_resume,
+			   NULL)
+};
+
 static int icdc_d3_probe(struct snd_soc_codec *codec)
 {
 	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
@@ -613,10 +618,6 @@ static int icdc_d3_remove(struct snd_soc_codec *codec)
 static struct snd_soc_component_driver soc_component_dev_icdc_d3_codec = {
 	.probe = 	icdc_d3_probe,
 	.remove = 	icdc_d3_remove,
-#ifdef CONFIG_PM
-	.suspend =	icdc_d3_suspend,
-	.resume =	icdc_d3_resume,
-#endif
 
 	.read = 	icdc_d3_read,
 	.write = 	icdc_d3_write,
@@ -739,6 +740,7 @@ static struct platform_driver icdc_d3_component_driver = {
 		.name = "icdc-d3",
 		.owner = THIS_MODULE,
 		.of_match_table = of_match_ptr(codec_dt_match),
+		.pm = &icdc_d3_pm,
 	},
 	.probe = icdc_d3_platform_probe,
 	.remove = icdc_d3_platform_remove,
