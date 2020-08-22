@@ -154,7 +154,7 @@ static void dump_registers_hazard(struct icdc_d3 *icdc_d3)
 static int icdc_d3_write(struct snd_soc_codec *codec, unsigned int reg,
 			unsigned int value)
 {
-	struct icdc_d3 *icdc_d3 = snd_soc_codec_get_drvdata(codec);
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
 	int val = value;
 	BUG_ON(reg > SCODA_MAX_REG_NUM);
 	dev_dbg(icdc_d3->dev,"%s reg = %x value = %x \n",__func__,reg,val);
@@ -178,7 +178,7 @@ static int icdc_d3_write(struct snd_soc_codec *codec, unsigned int reg,
 static unsigned int icdc_d3_read(struct snd_soc_codec *codec, unsigned int reg)
 {
 
-	struct icdc_d3 *icdc_d3 = snd_soc_codec_get_drvdata(codec);
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
 	int val = 0;
 	BUG_ON(reg > SCODA_MAX_REG_NUM);
 
@@ -249,7 +249,7 @@ static int icdc_d3_trigger(struct snd_pcm_substream * stream, int cmd,
 {
 #ifdef DEBUG
 	struct snd_soc_codec *codec = dai->codec;
-	struct icdc_d3 *icdc_d3 = snd_soc_codec_get_drvdata(codec);
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
@@ -316,7 +316,7 @@ static struct snd_soc_dai_ops icdc_d3_dai_ops = {
 	.startup	= ingenic_icdc_startup,
 };
 
-static struct snd_soc_dai_driver  icdc_d3_codec_dai = {
+static struct snd_soc_dai_driver  icdc_d3_component_dai = {
 	.name = "icdc-d3-hifi",
 	.playback = {
 		.stream_name = "Playback",
@@ -533,7 +533,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 #ifdef CONFIG_PM
 static int icdc_d3_suspend(struct snd_soc_codec *codec)
 {
-	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
 
 	snd_soc_update_bits(codec, SCODA_REG_AICR_ADC, SCODA_AICR_ADC_SB_MASK, 1);
 	snd_soc_update_bits(codec, SCODA_REG_AICR_DAC, SCODA_AICR_DAC_SB_MASK, 1);
@@ -546,7 +546,7 @@ static int icdc_d3_suspend(struct snd_soc_codec *codec)
 
 static int icdc_d3_resume(struct snd_soc_codec *codec)
 {
-	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
 
 	snd_soc_update_bits(codec, SCODA_REG_CR_CK, SCODA_CR_CK_SDCLK_MASK, 0);
 
@@ -564,7 +564,7 @@ static int icdc_d3_resume(struct snd_soc_codec *codec)
 
 static int icdc_d3_probe(struct snd_soc_codec *codec)
 {
-	struct icdc_d3 *icdc_d3 = snd_soc_codec_get_drvdata(codec);
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
 	dev_info(codec->dev, "codec icdc-d3 probe enter\n");
 
 	/* power off codec */
@@ -604,13 +604,13 @@ static int icdc_d3_probe(struct snd_soc_codec *codec)
 
 static int icdc_d3_remove(struct snd_soc_codec *codec)
 {
-	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
 	dev_info(codec->dev, "codec icdc_d3 remove enter\n");
 	snd_soc_dapm_force_bias_level(dapm, SND_SOC_BIAS_OFF);
 	return 0;
 }
 
-static struct snd_soc_codec_driver soc_codec_dev_icdc_d3_codec = {
+static struct snd_soc_component_driver soc_component_dev_icdc_d3_codec = {
 	.probe = 	icdc_d3_probe,
 	.remove = 	icdc_d3_remove,
 #ifdef CONFIG_PM
@@ -709,7 +709,7 @@ static int icdc_d3_platform_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, (void *)icdc_d3);
 
 	ret = snd_soc_register_codec(&pdev->dev,
-			&soc_codec_dev_icdc_d3_codec, &icdc_d3_codec_dai, 1);
+			&soc_component_dev_icdc_d3_codec, &icdc_d3_component_dai, 1);
 	if (ret) {
 		dev_err(&pdev->dev, "Faild to register codec\n");
 		platform_set_drvdata(pdev, NULL);
@@ -734,7 +734,7 @@ static const struct of_device_id codec_dt_match[] = {
 };
 MODULE_DEVICE_TABLE(of, codec_dt_match);
 
-static struct platform_driver icdc_d3_codec_driver = {
+static struct platform_driver icdc_d3_component_driver = {
 	.driver = {
 		.name = "icdc-d3",
 		.owner = THIS_MODULE,
@@ -746,13 +746,13 @@ static struct platform_driver icdc_d3_codec_driver = {
 
 static int icdc_d3_modinit(void)
 {
-	return platform_driver_register(&icdc_d3_codec_driver);
+	return platform_driver_register(&icdc_d3_component_driver);
 }
 module_init(icdc_d3_modinit);
 
 static void icdc_d3_exit(void)
 {
-	platform_driver_unregister(&icdc_d3_codec_driver);
+	platform_driver_unregister(&icdc_d3_component_driver);
 }
 module_exit(icdc_d3_exit);
 

@@ -532,10 +532,10 @@ static unsigned int inline ingenic_aic_read_reg(struct device *dev, unsigned int
 #define __i2s_play_lastsample(parent)        \
 	ingenic_aic_set_reg(parent, AICFR, 1, AICFR_LSMP_MASK, AICFR_LSMP_BIT)
 
-#define __i2s_codec_slave(parent)	\
+#define __i2s_component_slave(parent)	\
 	ingenic_aic_set_reg(parent, AICFR, 1, AICFR_CDC_SLV_MASK, AICFR_CDC_SLV_BIT)
 
-#define __i2s_codec_master(parent)	\
+#define __i2s_component_master(parent)	\
 	ingenic_aic_set_reg(parent, AICFR, 0, AICFR_CDC_SLV_MASK, AICFR_CDC_SLV_BIT)
 
 #define __i2s_select_sysclk_output(parent)	\

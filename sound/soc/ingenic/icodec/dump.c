@@ -65,22 +65,22 @@ static const struct snd_soc_dai_driver dmic_dump_dai __initdata = {
 static const struct of_device_id dump_dt_match[];
 static int dump_platform_probe(struct platform_device *pdev)
 {
-	struct snd_soc_codec_driver *dump_codec;
+	struct snd_soc_component_driver *dump_codec;
 	struct snd_soc_dai_driver *dump_dai;
 	const struct of_device_id *match;
 	int ret = 0;
 
 	dump_dai = (struct snd_soc_dai_driver *)devm_kzalloc(&pdev->dev,
-			sizeof(struct snd_soc_codec_driver), GFP_KERNEL);
+			sizeof(struct snd_soc_component_driver), GFP_KERNEL);
 	if (!dump_dai)
 		return -ENOMEM;
 	match = of_match_node(dump_dt_match, pdev->dev.of_node);
 	if (!match)
 		return -ENODEV;
-	memcpy(dump_dai, match->data, sizeof(struct snd_soc_codec_driver));
+	memcpy(dump_dai, match->data, sizeof(struct snd_soc_component_driver));
 
-	dump_codec = (struct snd_soc_codec_driver *)devm_kzalloc(&pdev->dev,
-			sizeof(struct snd_soc_codec_driver), GFP_KERNEL);
+	dump_codec = (struct snd_soc_component_driver *)devm_kzalloc(&pdev->dev,
+			sizeof(struct snd_soc_component_driver), GFP_KERNEL);
 	if (!dump_codec)
 		return -ENOMEM;
 

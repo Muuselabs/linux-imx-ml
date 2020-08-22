@@ -348,7 +348,7 @@ static int dmic_gain_get(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct ingenic_dmic *ingenic_dmic = snd_soc_codec_get_drvdata(codec);
+	struct ingenic_dmic *ingenic_dmic = snd_soc_component_get_drvdata(codec);
 	unsigned int value;
 	clk_prepare_enable(ingenic_dmic->clk_gate_dmic);
 	value = dmic_read_reg(ingenic_dmic->dev, DMICGCR);
@@ -360,7 +360,7 @@ static int dmic_gain_put(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct ingenic_dmic *ingenic_dmic = snd_soc_codec_get_drvdata(codec);
+	struct ingenic_dmic *ingenic_dmic = snd_soc_component_get_drvdata(codec);
 	unsigned int value = ucontrol->value.integer.value[0];
 
 	clk_prepare_enable(ingenic_dmic->clk_gate_dmic);
@@ -371,12 +371,12 @@ static int dmic_gain_put(struct snd_kcontrol *kcontrol,
 }
 
 static const DECLARE_TLV_DB_SCALE(dmic_gain_tlv, 0, 300, 0);
-static const struct snd_kcontrol_new  dmic_codec_controls[] = {
+static const struct snd_kcontrol_new  dmic_component_controls[] = {
 	SOC_SINGLE_EXT_TLV("dmic gain", 0, 0, 0xf, 0 , dmic_gain_get, dmic_gain_put, dmic_gain_tlv),
 };
 
 
-static struct snd_soc_dai_driver  dmic_codec_dai = {
+static struct snd_soc_dai_driver  dmic_component_dai = {
 	.name = "dmic-codec-hifi",
 	.capture = {
 		.channels_min = 1,
@@ -386,9 +386,9 @@ static struct snd_soc_dai_driver  dmic_codec_dai = {
 	},
 };
 
-static struct snd_soc_codec_driver soc_codec_dev_dmic_codec = {
-	.controls = 	dmic_codec_controls,
-	.num_controls = ARRAY_SIZE(dmic_codec_controls),
+static struct snd_soc_component_driver soc_component_dev_dmic_codec = {
+	.controls = 	dmic_component_controls,
+	.num_controls = ARRAY_SIZE(dmic_component_controls),
 };
 
 extern int ingenic_dma_pcm_register(struct device *dev,  const struct snd_dmaengine_pcm_config *config);
@@ -450,7 +450,7 @@ static int ingenic_dmic_platfrom_probe(struct platform_device *pdev)
 //	}
 
 	ret = snd_soc_register_codec(&pdev->dev,
-					&soc_codec_dev_dmic_codec, &dmic_codec_dai, 1);
+					&soc_component_dev_dmic_codec, &dmic_component_dai, 1);
 	ret = snd_soc_register_component(&pdev->dev, &ingenic_dmic_component,
 					 &ingenic_dmic_dai, 1);
 	if (ret)
