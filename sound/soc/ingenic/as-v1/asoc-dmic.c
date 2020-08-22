@@ -345,8 +345,8 @@ static const struct snd_soc_component_driver ingenic_dmic_component = {
 static int dmic_gain_get(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct ingenic_dmic *ingenic_dmic = snd_soc_component_get_drvdata(codec);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct ingenic_dmic *ingenic_dmic = snd_soc_component_get_drvdata(component);
 	unsigned int value;
 	clk_prepare_enable(ingenic_dmic->clk_gate_dmic);
 	value = dmic_read_reg(ingenic_dmic->dev, DMICGCR);
@@ -357,8 +357,8 @@ static int dmic_gain_get(struct snd_kcontrol *kcontrol,
 static int dmic_gain_put(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	struct ingenic_dmic *ingenic_dmic = snd_soc_component_get_drvdata(codec);
+	struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);
+	struct ingenic_dmic *ingenic_dmic = snd_soc_component_get_drvdata(component);
 	unsigned int value = ucontrol->value.integer.value[0];
 
 	clk_prepare_enable(ingenic_dmic->clk_gate_dmic);
@@ -384,7 +384,7 @@ static struct snd_soc_dai_driver  dmic_component_dai = {
 	},
 };
 
-static struct snd_soc_component_driver soc_component_dev_dmic_codec = {
+static struct snd_soc_component_driver soc_component_dev_dmic_component = {
 	.controls = 	dmic_component_controls,
 	.num_controls = ARRAY_SIZE(dmic_component_controls),
 };
@@ -447,8 +447,8 @@ static int ingenic_dmic_platfrom_probe(struct platform_device *pdev)
 //		return ret;
 //	}
 
-	ret = snd_soc_register_codec(&pdev->dev,
-					&soc_component_dev_dmic_codec, &dmic_component_dai, 1);
+	ret = snd_soc_register_component(&pdev->dev,
+					&soc_component_dev_dmic_component, &dmic_component_dai, 1);
 	ret = snd_soc_register_component(&pdev->dev, &ingenic_dmic_component,
 					 &ingenic_dmic_dai, 1);
 	if (ret)
