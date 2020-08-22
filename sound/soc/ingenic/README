@@ -1,0 +1,24 @@
+DIRs:
+.
+├── as-v1/
+├── as-v2/
+├── boards/
+├── icodec/
+├── ecodec/
+├── Kconfig
+├── Makefile
+└── README
+
+---
+as-v1:
+	Audio System Version 1.
+	Support SOCs
+		-X1000 Series.
+---
+boards: Boards config.
+icodec: Internal Codecs.
+ecodec: External Codecs.
+
+
+## Tested Usable External codecs
+
