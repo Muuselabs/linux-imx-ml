@@ -268,9 +268,6 @@ static struct snd_soc_dai_ops ingenic_pcm_dai_ops = {
 	.shutdown	= ingenic_pcm_shutdown,
 };
 
-#define ingenic_pcm_suspend	NULL
-#define ingenic_pcm_resume	NULL
-
 static ssize_t ingenic_pcm_regs_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -285,8 +282,6 @@ static struct device_attribute ingenic_pcm_sysfs_attrs[] = {
 
 static struct snd_soc_dai_driver ingenic_pcm_dai = {
 		.probe   = ingenic_pcm_probe,
-		.suspend = ingenic_pcm_suspend,
-		.resume  = ingenic_pcm_resume,
 		.playback = {
 			.channels_min = 1,
 			.channels_max = 1,
@@ -328,7 +323,7 @@ static int ingenic_pcm_platfrom_probe(struct platform_device *pdev)
 
 	ingenic_pcm->res_start = res->start;
 	ingenic_pcm->res_size = resource_size(res);
-	ingenic_pcm->vaddr_base = devm_ioremap_nocache(&pdev->dev,
+	ingenic_pcm->vaddr_base = devm_ioremap(&pdev->dev,
 			ingenic_pcm->res_start, ingenic_pcm->res_size);
 	if (!ingenic_pcm->vaddr_base) {
 		dev_err(&pdev->dev, "Failed to ioremap mmio memory\n");
