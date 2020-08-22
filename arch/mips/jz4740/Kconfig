@@ -24,6 +24,10 @@ config X1830_CU1830_NEO
 	bool "YSH & ATIL CU1830 Module with Neo backplane"
 	select MACH_X1830
 
+config ML_JOOKI_V2
+	bool "Muuselabs Jooki V2"
+	select MACH_X1000
+
 endchoice
 
 config MACH_JZ4740

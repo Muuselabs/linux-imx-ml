@@ -1,0 +1,172 @@
+// SPDX-License-Identifier: GPL-2.0
+/dts-v1/;
+
+#include "x1000.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/ingenic,tcu.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+	compatible = "muuselabs,jooki-v2", "ingenic,x1000";
+	model = "Muuselabs Jooki V2";
+
+	aliases {
+		serial2 = &uart2;
+	};
+
+	chosen {
+		stdout-path = "serial2:115200n8";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x04000000>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led-0 {
+			gpios = <&gpb 21 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "mmc0";
+		};
+	};
+
+	wlan_pwrseq: msc1-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+
+		clocks = <&lpoclk>;
+		clock-names = "ext_clock";
+
+		reset-gpios = <&gpc 17 GPIO_ACTIVE_LOW>;
+		post-power-on-delay-ms = <200>;
+
+		lpoclk: ap6212a {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <32768>;
+		};
+	};
+};
+
+&exclk {
+	clock-frequency = <24000000>;
+};
+
+&ost {
+	counting-frequency = <1500000>;
+};
+
+&tcu {
+	/* 1500 kHz for the system timer */
+	assigned-clocks = <&tcu TCU_CLK_TIMER7>;
+	assigned-clock-rates = <1500000>;
+
+	/* Use channel #8 for the system timer */
+	ingenic,pwm-channels-mask = <0x7f>;
+};
+
+&i2c0 {
+	status = "okay";
+
+	clock-frequency = <400000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_i2c0>;
+};
+
+&uart2 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart2>;
+};
+
+&ssi {
+	status = "okay";
+
+	spi-max-frequency = <50000000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_ssi>;
+};
+
+&otg {
+	status = "okay";
+};
+
+&msc0 {
+	status = "okay";
+
+	bus-width = <1>;
+	max-frequency = <50000000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_msc0>;
+
+	non-removable;
+};
+
+&msc1 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+	bus-width = <4>;
+	max-frequency = <50000000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_msc1>;
+
+	non-removable;
+
+	mmc-pwrseq = <&wlan_pwrseq>;
+
+	ap6212a: wifi@1 {
+		compatible = "brcm,bcm4329-fmac";
+		reg = <1>;
+
+		interrupt-parent = <&gpc>;
+		interrupts = <16 IRQ_TYPE_EDGE_FALLING>;
+		interrupt-names = "host-wake";
+
+		brcm,drive-strength = <10>;
+	};
+};
+
+&pinctrl {
+	pins_i2c0: i2c0 {
+		function = "i2c0";
+		groups = "i2c0-data";
+		bias-disable;
+	};
+
+	pins_uart2: uart2 {
+		function = "uart2";
+		groups = "uart2-data-d";
+		bias-disable;
+	};
+
+	pins_ssi: ssi {
+		function = "ssi";
+		groups = "ssi-dt-d", "ssi-dr-d", "ssi-clk-d", "ssi-ce0-d";
+		bias-disable;
+	};
+
+	pins_mac: mac {
+		function = "mac";
+		groups = "mac";
+		bias-disable;
+	};
+
+	pins_msc0: msc0 {
+		function = "mmc0";
+		groups = "mmc0-1bit", "mmc0-4bit", "mmc0-8bit";
+		bias-disable;
+	};
+
+	pins_msc1: msc1 {
+		function = "mmc1";
+		groups = "mmc1-1bit", "mmc1-4bit";
+		bias-disable;
+	};
+};
