@@ -329,8 +329,6 @@ static const struct attribute_group dump_attr_group = {
 
 static struct snd_soc_dai_driver ingenic_dmic_dai = {
 		.probe   = ingenic_dmic_probe,
-		.suspend = ingenic_dmic_suspend,
-		.resume  = ingenic_dmic_resume,
 		.capture = {
 			.channels_min = 1,
 			.channels_max = 4,
@@ -498,6 +496,11 @@ static int ingenic_dmic_platfom_resume(struct platform_device *pdev)
 }
 #endif
 
+static const struct dev_pm_ops ingenic_dmic_pm = {
+	SET_RUNTIME_PM_OPS(ingenic_dmic_platfom_suspend, ingenic_dmic_platfom_resume,
+			   NULL)
+};
+
 static const struct of_device_id dmic_dt_match[] = {
 	{ .compatible = "ingenic,dmic", .data = NULL },
 	{},
@@ -506,14 +509,11 @@ MODULE_DEVICE_TABLE(of, dmic_dt_match);
 static struct platform_driver ingenic_dmic_plat_driver = {
 	.probe  = ingenic_dmic_platfrom_probe,
 	.remove = ingenic_dmic_platfom_remove,
-#ifdef CONFIG_PM
-	.suspend = ingenic_dmic_platfom_suspend,
-	.resume = ingenic_dmic_platfom_resume,
-#endif
 	.driver = {
 		.name = "ingenic-asoc-dmic",
 		.owner = THIS_MODULE,
 		.of_match_table = of_match_ptr(dmic_dt_match),
+		.pm = &ingenic_dmic_pm,
 	},
 };
 
