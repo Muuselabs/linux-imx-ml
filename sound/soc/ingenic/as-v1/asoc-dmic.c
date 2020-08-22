@@ -411,7 +411,7 @@ static int ingenic_dmic_platfrom_probe(struct platform_device *pdev)
 
 	ingenic_dmic->res_start = res->start;
 	ingenic_dmic->res_size = resource_size(res);
-	ingenic_dmic->vaddr_base = devm_ioremap_nocache(&pdev->dev,
+	ingenic_dmic->vaddr_base = devm_ioremap(&pdev->dev,
 			ingenic_dmic->res_start, ingenic_dmic->res_size);
 	if (!ingenic_dmic->vaddr_base) {
 		dev_err(&pdev->dev, "Failed to ioremap mmio memory\n");
