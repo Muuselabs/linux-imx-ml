@@ -49,16 +49,33 @@ module_param(asoc_dma_debug, int, 0644);
 
 #define INGENIC_DMA_BUFFERSIZE_PREALLOC (32 * 1024)
 #define INGENIC_DMA_BUFFERSIZE_MAX (128 * 1024)
+
+#define SND_DMAENGINE_PCM_FLAG_NO_RESIDUE BIT(31)
+
 struct ingenic_dma_pcm {
 	struct dma_chan *chan[SNDRV_PCM_STREAM_LAST + 1];
-	struct snd_soc_platform platform;
-	const struct snd_pcm_hardware *hardware;
-	unsigned int prealloc_buffersize;
-	int no_residue;
+	const struct snd_dmaengine_pcm_config *config;
+	struct snd_soc_component component;
+	unsigned int flags;
 };
-#define soc_platform_to_ingenicpcm(x) container_of(x, struct ingenic_dma_pcm, platform)
 
-static int ingenic_pcm_hw_params(struct snd_pcm_substream *substream,
+static struct ingenic_dma_pcm *soc_component_to_ingenicpcm(struct snd_soc_component *p)
+{
+	return container_of(p, struct ingenic_dma_pcm, component);
+}
+
+static struct device *ingenicdma_dma_dev(struct ingenic_dma_pcm *pcm,
+	struct snd_pcm_substream *substream)
+{
+	if (!pcm->chan[substream->stream])
+		return NULL;
+
+	return pcm->chan[substream->stream]->device->dev;
+}
+
+
+static int ingenic_pcm_hw_params(struct snd_soc_component *component,
+                                 struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = snd_pcm_substream_chip(substream);
@@ -87,7 +104,8 @@ static int ingenic_pcm_hw_params(struct snd_pcm_substream *substream,
 	return snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(params));
 }
 
-static int ingenic_pcm_hw_free(struct snd_pcm_substream *substream)
+static int ingenic_pcm_hw_free(struct snd_soc_component *component,
+                               struct snd_pcm_substream *substream)
 {
 	struct ingenic_pcm_runtime_data *prtd = substream_to_prtd(substream);
 
@@ -99,7 +117,8 @@ static int ingenic_pcm_hw_free(struct snd_pcm_substream *substream)
 	return snd_pcm_lib_free_pages(substream);
 }
 
-static int ingenic_pcm_prepare(struct snd_pcm_substream *substream)
+static int ingenic_pcm_prepare(struct snd_soc_component *component,
+                               struct snd_pcm_substream *substream)
 {
 	struct ingenic_pcm_runtime_data *prtd = substream_to_prtd(substream);
 
@@ -173,7 +192,8 @@ static int ingenic_pcm_prepare_and_submit(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static int ingenic_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
+static int ingenic_pcm_trigger(struct snd_soc_component *component,
+                               struct snd_pcm_substream *substream, int cmd)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct ingenic_pcm_runtime_data *prtd = substream_to_prtd(substream);
@@ -244,12 +264,12 @@ static snd_pcm_uframes_t ingenic_pcm_pointer_residue(struct snd_pcm_substream *s
 	return bytes_to_frames(substream->runtime, pos);
 }
 
-static snd_pcm_uframes_t ingenic_pcm_pointer(struct snd_pcm_substream *substream)
+static snd_pcm_uframes_t ingenic_pcm_pointer(struct snd_soc_component *component,
+                                             struct snd_pcm_substream *substream)
 {
-	struct snd_soc_pcm_runtime *rtd = snd_pcm_substream_chip(substream);
-	struct ingenic_dma_pcm *ingenic_pcm = soc_platform_to_ingenicpcm(rtd->platform);
+	struct ingenic_dma_pcm *ingenic_pcm = soc_component_to_ingenicpcm(component);
 
-	if (ingenic_pcm->no_residue)
+	if (ingenic_pcm->flags & SND_DMAENGINE_PCM_FLAG_NO_RESIDUE)
 		return ingenic_pcm_pointer_no_residue(substream);
 
 	return ingenic_pcm_pointer_residue(substream);
@@ -332,72 +352,68 @@ static void stopdma_delayed_work(struct work_struct *work)
 	return;
 }
 
-static int ingenic_pcm_open(struct snd_pcm_substream *substream)
+static int
+ingenic_dma_pcm_set_runtime_hwparams(struct snd_soc_component *component,
+				   struct snd_pcm_substream *substream)
 {
-	struct snd_soc_pcm_runtime *rtd = snd_pcm_substream_chip(substream);
-	struct ingenic_dma_pcm *ingenic_pcm = soc_platform_to_ingenicpcm(rtd->platform);
-	struct dma_chan *chan = ingenic_pcm->chan[substream->stream];
-	struct dma_slave_caps dma_caps;
-	struct snd_pcm_hardware hw;
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct ingenic_dma_pcm *pcm = soc_component_to_ingenicpcm(component);
+	struct dma_chan *chan = pcm->chan[substream->stream];
 	struct snd_dmaengine_dai_dma_data *dma_data;
+	struct snd_pcm_hardware hw;
+
+	if (rtd->num_cpus > 1) {
+		dev_err(rtd->dev,
+			"%s doesn't support Multi CPU yet\n", __func__);
+		return -EINVAL;
+	}
+
+	if (pcm->config && pcm->config->pcm_hardware)
+		return snd_soc_set_runtime_hwparams(substream,
+				pcm->config->pcm_hardware);
+        
+	dma_data = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
+
+	memset(&hw, 0, sizeof(hw));
+    hw.buffer_bytes_max = INGENIC_DMA_BUFFERSIZE_MAX;
+    hw.period_bytes_max = (32 * 1024);
+    hw.period_bytes_min = 1024;
+    hw.periods_max = 64;	/* INGENIC PDMA LIMIT */
+    hw.periods_min = 4;
+    hw.fifo_size = dma_data->fifo_size;
+    hw.info = SNDRV_PCM_INFO_MMAP | SNDRV_PCM_INFO_MMAP_VALID |
+        SNDRV_PCM_INFO_INTERLEAVED;
+        
+	if (pcm->flags & SND_DMAENGINE_PCM_FLAG_NO_RESIDUE)
+		hw.info |= SNDRV_PCM_INFO_BATCH;
+
+	/**
+	 * FIXME: Remove the return value check to align with the code
+	 * before adding snd_dmaengine_pcm_refine_runtime_hwparams
+	 * function.
+	 */
+	snd_dmaengine_pcm_refine_runtime_hwparams(substream,
+						  dma_data,
+						  &hw,
+						  chan);
+
+	return snd_soc_set_runtime_hwparams(substream, &hw);
+}
+
+
+static int ingenic_pcm_open(struct snd_soc_component *component,
+                            struct snd_pcm_substream *substream)
+{
+	struct ingenic_dma_pcm *ingenic_pcm = soc_component_to_ingenicpcm(component);
+	struct dma_chan *chan = ingenic_pcm->chan[substream->stream];
 	struct ingenic_pcm_runtime_data *prtd = NULL;
-	u32 addr_widths = BIT(DMA_SLAVE_BUSWIDTH_1_BYTE) |
-		BIT(DMA_SLAVE_BUSWIDTH_2_BYTES) |
-		BIT(DMA_SLAVE_BUSWIDTH_4_BYTES);
 	int ret;
 
 	DMA_DEBUG_MSG("%s enter\n", __func__);
-	if (ingenic_pcm->hardware) {
-		ret = snd_soc_set_runtime_hwparams(substream, ingenic_pcm->hardware);
-		if (ret)
-			return ret;
-	} else {
-		int i;
-		dma_data = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
-		memset(&hw, 0, sizeof(hw));
-		hw.buffer_bytes_max = INGENIC_DMA_BUFFERSIZE_MAX;
-		hw.period_bytes_max = (32 * 1024);
-		hw.period_bytes_min = 1024;
-		hw.periods_max = 64;	/*INGENIC PDMA LIMITE*/
-		hw.periods_min = 4;
-		hw.fifo_size = dma_data->fifo_size;
-		hw.info = SNDRV_PCM_INFO_MMAP | SNDRV_PCM_INFO_MMAP_VALID |
-			SNDRV_PCM_INFO_INTERLEAVED;
-		ret = dma_get_slave_caps(chan, &dma_caps);
-		if (ret == 0) {
-			if (dma_caps.residue_granularity <= DMA_RESIDUE_GRANULARITY_SEGMENT)
-				hw.info |= SNDRV_PCM_INFO_BATCH;
-			if (dma_caps.residue_granularity == DMA_RESIDUE_GRANULARITY_DESCRIPTOR)
-				ingenic_pcm->no_residue = 1;
-			if (dma_caps.cmd_pause)
-				hw.info |= SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME;
-			if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-				addr_widths = dma_caps.dst_addr_widths;
-			else
-				addr_widths = dma_caps.src_addr_widths;
-		}
-
-		for (i = 0; i <= SNDRV_PCM_FORMAT_LAST; i++) {
-			int bits = snd_pcm_format_physical_width(i);
-			switch (bits) {
-			case 8:
-			case 16:
-			case 24:
-			case 32:
-			case 64:
-				if (addr_widths & (1 << (bits / 8)))
-					hw.formats |= (1LL << i);
-				break;
-			default:
-				/* Unsupported types */
-				break;
-			}
-		}
-
-		ret = snd_soc_set_runtime_hwparams(substream, &hw);
-		if (ret)
-			return ret;
-	}
+    
+	ret = ingenic_dma_pcm_set_runtime_hwparams(component, substream);
+	if (ret)
+		return ret;
 
 	ret = snd_pcm_hw_constraint_integer(substream->runtime,
 			SNDRV_PCM_HW_PARAM_PERIODS);
@@ -419,7 +435,8 @@ static int ingenic_pcm_open(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static int ingenic_pcm_close(struct snd_pcm_substream *substream)
+static int ingenic_pcm_close(struct snd_soc_component *component,
+                             struct snd_pcm_substream *substream)
 {
 	struct ingenic_pcm_runtime_data *prtd = substream_to_prtd(substream);
 
@@ -436,71 +453,107 @@ static int ingenic_pcm_close(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-struct snd_pcm_ops ingenic_pcm_ops = {
-	.open		= ingenic_pcm_open,
-	.close		= ingenic_pcm_close,
-	.ioctl		= snd_pcm_lib_ioctl,
-	.hw_params	= ingenic_pcm_hw_params,
-	.hw_free	= ingenic_pcm_hw_free,
-	.prepare	= ingenic_pcm_prepare,
-	.trigger	= ingenic_pcm_trigger,
-	.pointer	= ingenic_pcm_pointer,
-};
 
-static void ingenic_pcm_free(struct snd_pcm *pcm)
+static void ingenic_pcm_free(struct snd_soc_component *component, struct snd_pcm *pcm)
 {
 	snd_pcm_lib_preallocate_free_for_all(pcm);
 }
 
-static int ingenic_pcm_new(struct snd_soc_pcm_runtime *rtd)
+static bool ingenic_pcm_can_report_residue(struct device *dev,
+	struct dma_chan *chan)
 {
-	struct ingenic_dma_pcm *ingenic_pcm = soc_platform_to_ingenicpcm(rtd->platform);
+	struct dma_slave_caps dma_caps;
+	int ret;
+
+	ret = dma_get_slave_caps(chan, &dma_caps);
+	if (ret != 0) {
+		dev_warn(dev, "Failed to get DMA channel capabilities, falling back to period counting: %d\n",
+			 ret);
+		return false;
+	}
+
+	if (dma_caps.residue_granularity == DMA_RESIDUE_GRANULARITY_DESCRIPTOR)
+		return false;
+
+	return true;
+}
+
+
+static int ingenic_pcm_new(struct snd_soc_component *component,
+                            struct snd_soc_pcm_runtime *rtd)
+{
+	struct ingenic_dma_pcm *ingenic_pcm = soc_component_to_ingenicpcm(component);
+    const struct snd_dmaengine_pcm_config *config = ingenic_pcm->config;
+    struct device *dev = component->dev;
 	struct snd_pcm_substream *substream;
 	int ret = -EINVAL;
-	int i;
+	size_t prealloc_buffer_size;
+	size_t max_buffer_size;
+    int i;
 
 	DMA_DEBUG_MSG("%s enter\n", __func__);
-	for (i = SNDRV_PCM_STREAM_PLAYBACK; i <= SNDRV_PCM_STREAM_CAPTURE; i++) {
+    
+	if (config && config->prealloc_buffer_size) {
+		prealloc_buffer_size = config->prealloc_buffer_size;
+		max_buffer_size = config->pcm_hardware->buffer_bytes_max;
+	} else {
+		prealloc_buffer_size = 512 * 1024;
+		max_buffer_size = INGENIC_DMA_BUFFERSIZE_MAX;
+	}
+
+	for_each_pcm_streams(i) {
 		substream = rtd->pcm->streams[i].substream;
 		if (!substream)
 			continue;
 
 		if (!ingenic_pcm->chan[i]) {
-			dev_err(rtd->platform->dev,
+			dev_err(dev,
 					"Missing dma channel for stream: %d\n", i);
 			ret = -EINVAL;
 			goto err_free;
 		}
 
-		ret = snd_pcm_lib_preallocate_pages(substream,
+		snd_pcm_set_managed_buffer(substream,
 				SNDRV_DMA_TYPE_DEV_IRAM,
-				ingenic_pcm->chan[i]->device->dev,
-				ingenic_pcm->prealloc_buffersize,
-				ingenic_pcm->hardware ?
-				ingenic_pcm->hardware->buffer_bytes_max :
-				INGENIC_DMA_BUFFERSIZE_MAX);
-		if (ret)
-			goto err_free;
+				ingenicdma_dma_dev(ingenic_pcm, substream),
+				prealloc_buffer_size,
+				max_buffer_size);
+
+		if (!ingenic_pcm_can_report_residue(dev, ingenic_pcm->chan[i]))
+			ingenic_pcm->flags |= SND_DMAENGINE_PCM_FLAG_NO_RESIDUE;
+
+		if (rtd->pcm->streams[i].pcm->name[0] == '\0') {
+			strscpy_pad(rtd->pcm->streams[i].pcm->name,
+				    rtd->pcm->streams[i].pcm->id,
+				    sizeof(rtd->pcm->streams[i].pcm->name));
+		}
 	}
+
 	return 0;
 
 err_free:
 	dev_err(rtd->dev, "Failed to alloc dma buffer %d\n", ret);
-	ingenic_pcm_free(rtd->pcm);
+	ingenic_pcm_free(component, rtd->pcm);
 	return ret;
 }
 
-static struct snd_soc_platform_driver ingenic_pcm_platform_driver = {
-	.ops            = &ingenic_pcm_ops,
-	.pcm_new        = ingenic_pcm_new,
-	.pcm_free       = ingenic_pcm_free,
+static struct snd_soc_component_driver ingenic_pcm_component_driver = {
+	.open		= ingenic_pcm_open,
+	.close		= ingenic_pcm_close,
+	.hw_params	= ingenic_pcm_hw_params,
+	.hw_free	= ingenic_pcm_hw_free,
+	.prepare	= ingenic_pcm_prepare,
+	.trigger	= ingenic_pcm_trigger,
+	.pointer	= ingenic_pcm_pointer,
+	.pcm_construct        = ingenic_pcm_new,
+	.pcm_destruct       = ingenic_pcm_free,
 };
 
 static void ingenic_pcm_release_dma_channel(struct ingenic_dma_pcm *ingenic_pcm)
 {
 	int i;
 
-	for (i = SNDRV_PCM_STREAM_PLAYBACK; i <= SNDRV_PCM_STREAM_CAPTURE; i++) {
+	for_each_pcm_streams(i) {
 		if (!ingenic_pcm->chan[i])
 			continue;
 		dma_release_channel(ingenic_pcm->chan[i]);
@@ -524,15 +577,10 @@ int ingenic_dma_pcm_register(struct device *dev,  const struct snd_dmaengine_pcm
 	if (!ingenic_pcm)
 		return -ENOMEM;
 
-	if (config && config->pcm_hardware)
-		ingenic_pcm->hardware = config->pcm_hardware;
+	if (config)
+		ingenic_pcm->config = config;
 
-	if (config && config->prealloc_buffer_size)
-		ingenic_pcm->prealloc_buffersize = config->prealloc_buffer_size;
-	else
-		ingenic_pcm->prealloc_buffersize = INGENIC_DMA_BUFFERSIZE_PREALLOC;
-
-	for (i = SNDRV_PCM_STREAM_PLAYBACK; i <= SNDRV_PCM_STREAM_CAPTURE; i++) {
+	for_each_pcm_streams(i) {
 		if (config && config->chan_names[i])
 			name = config->chan_names[i];
 		else
@@ -548,7 +596,12 @@ int ingenic_dma_pcm_register(struct device *dev,  const struct snd_dmaengine_pcm
 		}
 	}
 
-	ret = snd_soc_add_platform(dev, &ingenic_pcm->platform, &ingenic_pcm_platform_driver);
+	if (config && config->process) {
+        dev_err(dev, "FIXME: process callback not supported\n");
+        return -EINVAL;
+    }
+	
+	ret = snd_soc_add_component(dev, &ingenic_pcm->component, &ingenic_pcm_component_driver, NULL, 0);
 	if (ret) {
 		ingenic_pcm_release_dma_channel(ingenic_pcm);
 		dev_err(dev, "Failed to register platfrom\n");
@@ -562,16 +615,16 @@ EXPORT_SYMBOL_GPL(ingenic_dma_pcm_register);
 
 void ingenic_dma_pcm_unregister(struct device *dev)
 {
-	struct snd_soc_platform *platform;
+	struct snd_soc_component *component;
 	struct ingenic_dma_pcm *ingenic_pcm;
 
-	platform = snd_soc_lookup_platform(dev);
-	if (!platform)
+	component = snd_soc_lookup_component(dev, SND_DMAENGINE_PCM_DRV_NAME);
+	if (!component)
 		return;
 
-	ingenic_pcm = soc_platform_to_ingenicpcm(platform);
+	ingenic_pcm = soc_component_to_ingenicpcm(component);
 
-	snd_soc_remove_platform(platform);
+	 snd_soc_unregister_component(dev);
 
 	ingenic_pcm_release_dma_channel(ingenic_pcm);
 	return;
