@@ -373,9 +373,6 @@ static struct snd_soc_dai_ops ingenic_i2s_dai_ops = {
 	.set_sysclk	= ingenic_set_sysclk,
 };
 
-#define ingenic_i2s_suspend	NULL
-#define ingenic_i2s_resume	NULL
-
 static ssize_t ingenic_i2s_regs_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -432,8 +429,6 @@ static int ingenic_i2s_platfrom_probe(struct platform_device *pdev)
 	ingenic_i2s->aic = pdev->dev.parent;
 	ingenic_i2s->i2s_mode = 0;
 	ingenic_i2s->dai_driver.probe = ingenic_i2s_probe;
-	ingenic_i2s->dai_driver.suspend = ingenic_i2s_suspend;
-	ingenic_i2s->dai_driver.resume = ingenic_i2s_resume;
 	ingenic_i2s->dai_driver.ops = &ingenic_i2s_dai_ops;
 	ingenic_i2s->dai_driver.playback.channels_min = 2;
 	ingenic_i2s->dai_driver.playback.channels_max = 2;
