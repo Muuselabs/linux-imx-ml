@@ -1,15 +1,10 @@
-/*
- *  sound/soc/ingenic/asoc-dma.c
- *  ALSA Soc Audio Layer -- ingenic audio dma platform driver
- *
- *  Copyright 2014 Ingenic Semiconductor Co.,Ltd
- *	cli <chen.li@ingenic.com>
- *
- *  This program is free software; you can redistribute  it and/or modify it
- *  under  the terms of  the GNU General  Public License as published by the
- *  Free Software Foundation;  either version 2 of the  License, or (at your
- *  option) any later version.
- */
+// SPDX-License-Identifier: GPL-2.0+
+//
+//  Copyright 2014, Ingenic Semiconductor Co.,Ltd
+//     Author: cli <chen.li@ingenic.com>
+//
+//  Copyright 2020, Muuselabs SA/NV
+//     Author: Pieter Palmers <pieter@muuselabs.com>
 
 #include <linux/init.h>
 #include <linux/module.h>
