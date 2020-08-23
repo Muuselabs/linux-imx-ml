@@ -162,7 +162,7 @@ static int snd_x1000_probe(struct platform_device *pdev)
 
 	x1000->dai.name = "ingenic-hifi";
 	x1000->dai.stream_name = "ingenic-hifi-stream";
-	x1000->dai.codecs->dai_name = "ingenic-hifi-analog";
+	x1000->dai.codecs->dai_name = "icdc-d3-hifi";
 	x1000->dai.codecs->of_node = codec_np;
 	x1000->dai.cpus->of_node = cpu_np;
 	x1000->dai.platforms->of_node = platform_np;
