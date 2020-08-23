@@ -169,11 +169,11 @@ static int ingenic_aic_probe(struct platform_device *pdev)
 	if (IS_ERR(ingenic_aic->vaddr_base))
 		return -ENOMEM;
 
-	ingenic_aic->clk_gate = devm_clk_get(&pdev->dev, "gate_aic");
+	ingenic_aic->clk_gate = devm_clk_get(&pdev->dev, "aic");
 	if (IS_ERR(ingenic_aic->clk_gate))
 		return PTR_ERR(ingenic_aic->clk_gate);
 
-	ingenic_aic->clk = devm_clk_get(&pdev->dev, "cgu_i2s");
+	ingenic_aic->clk = devm_clk_get(&pdev->dev, "i2s");
 	if (IS_ERR(ingenic_aic->clk))
 		return PTR_ERR(ingenic_aic->clk);
 	clk_set_rate(ingenic_aic->clk, INGENIC_I2S_RATE);

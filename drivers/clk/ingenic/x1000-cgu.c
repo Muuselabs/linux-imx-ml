@@ -277,6 +277,20 @@ static const struct ingenic_cgu_clk_info x1000_cgu_clocks[] = {
 		.mux = { CGU_REG_SSICDR, 30, 1 },
 	},
 
+	[X1000_CLK_I2S] = {
+		"i2s", CGU_CLK_MUX,
+//		.parents = { X1000_CLK_EXCLK, X1000_CLK_SCLKA, -1, X1000_CLK_MPLL },
+		.parents = { X1000_CLK_EXCLK, -1, -1, -1 },
+		.mux = { CGU_REG_I2SCDR, 30, 2 },
+	},
+
+	[X1000_CLK_PCM] = {
+		"pcm", CGU_CLK_MUX,
+//		.parents = { X1000_CLK_SCLKA, X1000_CLK_EXCLK, X1000_CLK_MPLL, -1 },
+		.parents = { X1000_CLK_EXCLK, -1, -1, -1 },
+		.mux = { CGU_REG_PCMCDR, 30, 2 },
+	},
+
 	/* Gate-only clocks */
 
 	[X1000_CLK_EMC] = {
@@ -315,6 +329,12 @@ static const struct ingenic_cgu_clk_info x1000_cgu_clocks[] = {
 		.gate = { CGU_REG_CLKGR, 9 },
 	},
 
+	[X1000_CLK_AIC] = {
+		"aic", CGU_CLK_GATE,
+		.parents = { X1000_CLK_PCLK, -1, -1, -1 },
+		.gate = { CGU_REG_CLKGR, 11 },
+	},
+
 	[X1000_CLK_UART0] = {
 		"uart0", CGU_CLK_GATE,
 		.parents = { X1000_CLK_EXCLK, -1, -1, -1 },
@@ -333,6 +353,12 @@ static const struct ingenic_cgu_clk_info x1000_cgu_clocks[] = {
 		.gate = { CGU_REG_CLKGR, 16 },
 	},
 
+	[X1000_CLK_DMIC] = {
+		"dmic", CGU_CLK_GATE,
+		.parents = { X1000_CLK_PCLK, -1, -1, -1 },
+		.gate = { CGU_REG_CLKGR, 17 },
+	},
+    
 	[X1000_CLK_TCU] = {
 		"tcu", CGU_CLK_GATE,
 		.parents = { X1000_CLK_EXCLK, -1, -1, -1 },
@@ -356,6 +382,13 @@ static const struct ingenic_cgu_clk_info x1000_cgu_clocks[] = {
 		.parents = { X1000_CLK_EXCLK, -1, -1, -1 },
 		.gate = { CGU_REG_CLKGR, 21 },
 	},
+
+	[X1000_CLK_PCM] = {
+		"pcm", CGU_CLK_GATE,
+		.parents = { X1000_CLK_PCLK, -1, -1, -1 },
+		.gate = { CGU_REG_CLKGR, 26 },
+	},
+        
 };
 
 static void __init x1000_cgu_init(struct device_node *np)

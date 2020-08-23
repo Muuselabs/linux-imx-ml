@@ -48,5 +48,9 @@
 #define X1000_CLK_SSI			33
 #define X1000_CLK_OST			34
 #define X1000_CLK_PDMA			35
+#define X1000_CLK_I2S			36
+#define X1000_CLK_PCM			37
+#define X1000_CLK_AIC			38
+#define X1000_CLK_DMIC			39
 
 #endif /* __DT_BINDINGS_CLOCK_X1000_CGU_H__ */
