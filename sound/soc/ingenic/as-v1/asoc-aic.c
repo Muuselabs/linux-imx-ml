@@ -246,6 +246,11 @@ int ingenic_aic_resume(struct platform_device *pdev)
 }
 #endif
 
+static const struct dev_pm_ops aic_pm = {
+	SET_RUNTIME_PM_OPS(ingenic_aic_suspend, ingenic_aic_resume,
+			   NULL)
+};
+
 static const struct of_device_id aic_dt_match[] = {
 	{ .compatible = "ingenic,aic", .data = NULL },
 	{},
@@ -260,10 +265,6 @@ static struct platform_driver ingenic_asoc_aic_driver = {
 	},
 	.probe  = ingenic_aic_probe,
 	.remove = ingenic_aic_remove,
-#ifdef CONFIG_PM
-	.suspend = ingenic_aic_suspend,
-	.resume = ingenic_aic_resume,
-#endif
 };
 module_platform_driver(ingenic_asoc_aic_driver);
 
