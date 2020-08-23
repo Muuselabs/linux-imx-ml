@@ -371,4 +371,24 @@
 
 		status = "disabled";
 	};
+    
+    aic: aic@0x10020000 {
+        compatible = "ingenic,aic";
+        reg = <0x10020000 0x100>;
+        
+        interrupt-parent = <&intc>;
+        interrupts = <1>;
+        
+        dmas = <&pdma X1000_DMA_I2S0_TX 0xffffffff>,
+                <&pdma X1000_DMA_I2S0_RX 0xffffffff>;
+        dma-names = "tx", "rx";
+        i2s: i2s {
+            compatible = "ingenic,i2s";
+            status = "ok";
+        };
+        codec: inner-codec {
+            compatible = "ingenic,icdc3";
+            status = "ok";
+        };
+    };
 };

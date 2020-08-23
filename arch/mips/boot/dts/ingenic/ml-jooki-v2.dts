@@ -46,6 +46,19 @@
 			clock-frequency = <32768>;
 		};
 	};
+
+	sound_halley2_icdc {
+		status = "ok";
+		compatible = "ingenic,x1000-sound";
+		ingenic,model = "halley2";
+		ingenic,dai-link = "i2s-icdc";
+		ingenic,stream = "main";
+		ingenic,cpu-dai = <&i2s>;
+		ingenic,platform = <&aic>;
+		ingenic,codec = <&codec>;
+		ingenic,codec-dai = "icdc-d3-hifi";
+		ingenic,audio-routing = "Speaker", "DO_LO_PWM";
+	};
 };
 
 &exclk {
