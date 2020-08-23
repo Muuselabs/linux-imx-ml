@@ -22,7 +22,7 @@
 
 struct icdc_d3 {
 	struct device		*dev;		/*aic device used to access register*/
-	struct snd_soc_codec	*codec;
+	struct snd_soc_component	*component;
 	spinlock_t       io_lock;		/*codec hw io lock,
 							  Note codec cannot opt in irq context*/
 	void * __iomem mapped_base;				/*vir addr*/
@@ -51,7 +51,7 @@ struct icdc_d3 {
  * detected_type: detect event treat as detected_type
  *	 example: SND_JACK_HEADSET detect event treat as SND_JACK_HEADSET
  */
-int icdc_d3_hp_detect(struct snd_soc_codec *codec,
+int icdc_d3_hp_detect(struct snd_soc_component *component,
 		struct snd_soc_jack *jack, int detected_type);
 
 /*  icdc_d3 internal register space */

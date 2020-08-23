@@ -65,7 +65,7 @@ static u8 icdc_d3_reg_defcache[SCODA_MAX_REG_NUM] = {
 		0x34,0x07,0x44,0x1f,0x00,
 };
 
-static int icdc_d3_volatile(struct snd_soc_codec *codec, unsigned int reg)
+static int icdc_d3_volatile(unsigned int reg)
 {
 	if (reg > SCODA_MAX_REG_NUM)
 		return 1;
@@ -93,7 +93,7 @@ static int icdc_d3_volatile(struct snd_soc_codec *codec, unsigned int reg)
 	}
 }
 
-static int icdc_d3_writable(struct snd_soc_codec *codec, unsigned int reg)
+static int icdc_d3_writable(unsigned int reg)
 {
 	if (reg > SCODA_MAX_REG_NUM)
 		return 0;
@@ -119,7 +119,7 @@ static int icdc_d3_writable(struct snd_soc_codec *codec, unsigned int reg)
 	}
 }
 
-static int icdc_d3_readable(struct snd_soc_codec *codec, unsigned int reg)
+static int icdc_d3_readable(unsigned int reg)
 {
 	if (reg > SCODA_MAX_REG_NUM)
 		return 0;
@@ -134,7 +134,7 @@ static void dump_registers_hazard(struct icdc_d3 *icdc_d3)
 	for ( ; reg < SCODA_MAX_REG_NUM; reg++) {
 		if (reg % 8 == 0)
 			printk("\n");
-		if (icdc_d3_readable(icdc_d3->codec, reg))
+		if (icdc_d3_readable(reg))
 			printk(" 0x%02x:0x%02x,", reg, icdc_d3_hw_read(icdc_d3, reg));
 		else
 			printk(" 0x%02x:0x%02x,", reg, 0x0);
@@ -151,17 +151,17 @@ static void dump_registers_hazard(struct icdc_d3 *icdc_d3)
 	return;
 }
 
-static int icdc_d3_write(struct snd_soc_codec *codec, unsigned int reg,
+static int icdc_d3_write(struct snd_soc_component *component, unsigned int reg,
 			unsigned int value)
 {
-	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(component);
 	int val = value;
 	BUG_ON(reg > SCODA_MAX_REG_NUM);
 	dev_dbg(icdc_d3->dev,"%s reg = %x value = %x \n",__func__,reg,val);
 
-	if (icdc_d3_writable(codec, reg)) {
-		if (!icdc_d3_volatile(codec,reg)) {
-			u8 *cache = codec->reg_cache;
+	if (icdc_d3_writable(reg)) {
+		if (!icdc_d3_volatile(reg)) {
+			u8 *cache = icdc_d3_reg_defcache;
 			if((reg == SCODA_REG_GCR_DACL) || (reg == SCODA_REG_GCR_DACR)){
 				if(val < 32)
 					val = 31 - val;
@@ -175,15 +175,15 @@ static int icdc_d3_write(struct snd_soc_codec *codec, unsigned int reg,
 	return 0;
 }
 
-static unsigned int icdc_d3_read(struct snd_soc_codec *codec, unsigned int reg)
+static unsigned int icdc_d3_read(struct snd_soc_component *component, unsigned int reg)
 {
 
-	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(component);
 	int val = 0;
 	BUG_ON(reg > SCODA_MAX_REG_NUM);
 
-	if (!icdc_d3_volatile(codec, reg)) {
-		u8 *cache = codec->reg_cache;
+	if (!icdc_d3_volatile(reg)) {
+		u8 *cache = icdc_d3_reg_defcache;
 		val = cache[reg];
 		if((reg == SCODA_REG_GCR_DACL) || (reg == SCODA_REG_GCR_DACR)){
 			if(val < 32)
@@ -194,7 +194,7 @@ static unsigned int icdc_d3_read(struct snd_soc_codec *codec, unsigned int reg)
 		return val;
 	}
 
-	if (icdc_d3_readable(codec, reg))
+	if (icdc_d3_readable(reg))
 		return icdc_d3_hw_read(icdc_d3, reg);
 
 	return 0;
@@ -204,8 +204,7 @@ static int icdc_d3_hw_params(struct snd_pcm_substream *substream,
 			    struct snd_pcm_hw_params *params,
 			    struct snd_soc_dai *dai)
 {
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->codec;
+    struct snd_soc_component *component = dai->component;
 	int playback = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK);
 	int bit_width_sel = 3;
 	int speed_sel = 0;
@@ -237,9 +236,9 @@ static int icdc_d3_hw_params(struct snd_pcm_substream *substream,
 	/*sample rate*/
 	for (speed_sel = 0; speed > sample_attr[speed_sel]; speed_sel++)
 		;
-	snd_soc_update_bits(codec, aicr_reg, SCODA_AICR_DAC_ADWL_MASK,
+	snd_soc_component_update_bits(component, aicr_reg, SCODA_AICR_DAC_ADWL_MASK,
 			(bit_width_sel << SCODA_AICR_DAC_ADWL_SHIFT));
-	snd_soc_update_bits(codec, fcr_reg, SCODA_FCR_FREQ_MASK,
+	snd_soc_component_update_bits(component, fcr_reg, SCODA_FCR_FREQ_MASK,
 			(speed_sel << SCODA_FCR_FREQ_SHIFT));
 	return 0;
 }
@@ -248,8 +247,8 @@ static int icdc_d3_trigger(struct snd_pcm_substream * stream, int cmd,
 		struct snd_soc_dai *dai)
 {
 #ifdef DEBUG
-	struct snd_soc_codec *codec = dai->codec;
-	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
+    struct snd_soc_component *component = dai->component;
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(component);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
@@ -272,12 +271,12 @@ static int icdc_d3_trigger(struct snd_pcm_substream * stream, int cmd,
 static int ingenic_icdc_startup(struct snd_pcm_substream *substream,
 		struct snd_soc_dai *dai)
 {
-	struct snd_soc_codec *codec = dai->codec;
-
+    struct snd_soc_component *component = dai->component;
+    
 	/*power on codec*/
-	if (snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 0))
+	if (snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 0))
 		msleep(250);
-	if (snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 0))
+	if (snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 0))
 		msleep(400);
 
 	return 0;
@@ -287,22 +286,23 @@ static int ingenic_icdc_startup(struct snd_pcm_substream *substream,
 static void ingenic_icdc_shutdown(struct snd_pcm_substream *substream,
 		struct snd_soc_dai *dai)
 {
-	struct snd_soc_codec *codec = dai->codec;
+    struct snd_soc_component *component = dai->component;
+    
 	/*power off codec*/
-	snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 1);
-	snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 1);
 	return;
 }
 
 
 int icdc_d3_mute_stream(struct snd_soc_dai *dai, int mute, int stream)
 {
-	struct snd_soc_codec *codec = dai->codec;
+    struct snd_soc_component *component = dai->component;
 
 	if(stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		snd_soc_update_bits(codec, SCODA_REG_CR_DAC, SCODA_CR_DAC_SMUTE_MASK, mute << SCODA_CR_DAC_SMUTE_SHIFT);
+		snd_soc_component_update_bits(component, SCODA_REG_CR_DAC, SCODA_CR_DAC_SMUTE_MASK, mute << SCODA_CR_DAC_SMUTE_SHIFT);
 	} else if(stream == SNDRV_PCM_STREAM_CAPTURE) {
-		snd_soc_update_bits(codec, SCODA_REG_CR_ADC, SCODA_CR_ADC_SMUTE_MASK, mute << SCODA_CR_ADC_SMUTE_SHIFT);
+		snd_soc_component_update_bits(component, SCODA_REG_CR_ADC, SCODA_CR_ADC_SMUTE_MASK, mute << SCODA_CR_ADC_SMUTE_SHIFT);
 	}
 	return 0;
 }
@@ -531,32 +531,32 @@ static const struct snd_soc_dapm_route intercon[] = {
 };
 
 #ifdef CONFIG_PM
-static int icdc_d3_suspend(struct snd_soc_codec *codec)
-{
-	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
+static int icdc_d3_suspend(struct snd_soc_component *component)
+{    
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(component);
 
-	snd_soc_update_bits(codec, SCODA_REG_AICR_ADC, SCODA_AICR_ADC_SB_MASK, 1);
-	snd_soc_update_bits(codec, SCODA_REG_AICR_DAC, SCODA_AICR_DAC_SB_MASK, 1);
-	snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 1);
-	snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 1);
-	snd_soc_update_bits(codec, SCODA_REG_CR_CK, SCODA_CR_CK_SDCLK_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_AICR_ADC, SCODA_AICR_ADC_SB_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_AICR_DAC, SCODA_AICR_DAC_SB_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_CK, SCODA_CR_CK_SDCLK_MASK, 1);
 	snd_soc_dapm_force_bias_level(dapm, SND_SOC_BIAS_OFF);
 	return 0;
 }
 
-static int icdc_d3_resume(struct snd_soc_codec *codec)
-{
-	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
+static int icdc_d3_resume(struct snd_soc_component *component)
+{    
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(component);
 
-	snd_soc_update_bits(codec, SCODA_REG_CR_CK, SCODA_CR_CK_SDCLK_MASK, 0);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_CK, SCODA_CR_CK_SDCLK_MASK, 0);
 
-	if (snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 0))
+	if (snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 0))
 		msleep(250);
-	if (snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 0)) {
+	if (snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 0)) {
 		msleep(10);
 	}
-	snd_soc_update_bits(codec, SCODA_REG_AICR_ADC, SCODA_AICR_ADC_SB_MASK, 0);
-	snd_soc_update_bits(codec, SCODA_REG_AICR_DAC, SCODA_AICR_DAC_SB_MASK, 0);
+	snd_soc_component_update_bits(component, SCODA_REG_AICR_ADC, SCODA_AICR_ADC_SB_MASK, 0);
+	snd_soc_component_update_bits(component, SCODA_REG_AICR_DAC, SCODA_AICR_DAC_SB_MASK, 0);
 	snd_soc_dapm_force_bias_level(dapm, SND_SOC_BIAS_STANDBY);
 	return 0;
 }
@@ -567,52 +567,51 @@ static const struct dev_pm_ops icdc_d3_pm = {
 			   NULL)
 };
 
-static int icdc_d3_probe(struct snd_soc_codec *codec)
+static int icdc_d3_probe(struct snd_soc_component *component)
 {
-	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(codec);
-	dev_info(codec->dev, "codec icdc-d3 probe enter\n");
+	struct icdc_d3 *icdc_d3 = snd_soc_component_get_drvdata(component);
+	dev_info(component->dev, "codec icdc-d3 probe enter\n");
 
 	/* power off codec */
-	snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 1);
-	snd_soc_update_bits(codec, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 1);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 1);
 
 #ifdef DEBUG
 	/*dump for debug*/
 	dump_registers_hazard(icdc_d3);
 #endif
 	/* codec select enable 24M clock*/
-	snd_soc_update_bits(codec, SCODA_REG_CR_CK , SCODA_CR_CK_MCLK_DIV_MASK, 1 << SCODA_CR_CK_MCLK_DIV_SHIFT);
-	snd_soc_update_bits(codec, SCODA_REG_CR_CK , SCODA_CR_CK_SDCLK_MASK, 0 << SCODA_CR_CK_SDCLK_SHIFT);
-	snd_soc_update_bits(codec, SCODA_REG_CR_CK , SCODA_CR_CRYSTAL_MASK, 0 << SCODA_CR_CRYSTAL_SHIFT);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_CK , SCODA_CR_CK_MCLK_DIV_MASK, 1 << SCODA_CR_CK_MCLK_DIV_SHIFT);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_CK , SCODA_CR_CK_SDCLK_MASK, 0 << SCODA_CR_CK_SDCLK_SHIFT);
+	snd_soc_component_update_bits(component, SCODA_REG_CR_CK , SCODA_CR_CRYSTAL_MASK, 0 << SCODA_CR_CRYSTAL_SHIFT);
 
 	/*codec select Dac/Adc i2s interface*/
-	snd_soc_update_bits(codec,SCODA_REG_AICR_DAC, SCODA_AICR_DAC_SLAVE_MASK, 0);
-	snd_soc_update_bits(codec,SCODA_REG_AICR_DAC, SCODA_AICR_DAC_AUDIO_MASK, SCODA_AICR_DAC_AUDIOIF_I2S);
+	snd_soc_component_update_bits(component,SCODA_REG_AICR_DAC, SCODA_AICR_DAC_SLAVE_MASK, 0);
+	snd_soc_component_update_bits(component,SCODA_REG_AICR_DAC, SCODA_AICR_DAC_AUDIO_MASK, SCODA_AICR_DAC_AUDIOIF_I2S);
 
 	/*codec generated IRQ is a high level */
-	snd_soc_update_bits(codec, SCODA_REG_ICR, SCODA_ICR_INT_FORM_MASK, SCODA_ICR_INT_FORM_LOW);
+	snd_soc_component_update_bits(component, SCODA_REG_ICR, SCODA_ICR_INT_FORM_MASK, SCODA_ICR_INT_FORM_LOW);
 
 	/*codec irq mask*/
-	snd_soc_write(codec, SCODA_REG_IMR, SCODA_IMR_COMMON_MASK);
-	snd_soc_write(codec, SCODA_REG_IMR2, SCODA_IMR2_COMMON_MASK);
+	snd_soc_component_write(component, SCODA_REG_IMR, SCODA_IMR_COMMON_MASK);
+	snd_soc_component_write(component, SCODA_REG_IMR2, SCODA_IMR2_COMMON_MASK);
 
 	/*codec clear all irq*/
-	snd_soc_write(codec, SCODA_REG_IFR, SCODA_IMR_COMMON_MASK);
-	snd_soc_write(codec, SCODA_REG_IFR2, SCODA_IMR2_COMMON_MASK);
+	snd_soc_component_write(component, SCODA_REG_IFR, SCODA_IMR_COMMON_MASK);
+	snd_soc_component_write(component, SCODA_REG_IFR2, SCODA_IMR2_COMMON_MASK);
 
-	icdc_d3_write(codec, SCODA_MIX_3, 0x5 << 4);
-	icdc_d3_write(codec, SCODA_MIX_2, 0x1 << 4);
+	icdc_d3_write(component, SCODA_MIX_3, 0x5 << 4);
+	icdc_d3_write(component, SCODA_MIX_2, 0x1 << 4);
 
-	icdc_d3->codec = codec;
+	icdc_d3->component = component;
 	return 0;
 }
 
-static int icdc_d3_remove(struct snd_soc_codec *codec)
+static void icdc_d3_remove(struct snd_soc_component *component)
 {
-	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
-	dev_info(codec->dev, "codec icdc_d3 remove enter\n");
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(component);
+	dev_info(component->dev, "codec icdc_d3 remove enter\n");
 	snd_soc_dapm_force_bias_level(dapm, SND_SOC_BIAS_OFF);
-	return 0;
 }
 
 static struct snd_soc_component_driver soc_component_dev_icdc_d3_codec = {
@@ -621,10 +620,6 @@ static struct snd_soc_component_driver soc_component_dev_icdc_d3_codec = {
 
 	.read = 	icdc_d3_read,
 	.write = 	icdc_d3_write,
-	.reg_cache_default = icdc_d3_reg_defcache,
-	.reg_word_size = sizeof(u8),
-	.reg_cache_step = 1,
-	.reg_cache_size = SCODA_MAX_REG_NUM,
 
 	.controls = 	icdc_d3_snd_controls,
 	.num_controls = ARRAY_SIZE(icdc_d3_snd_controls),
@@ -639,14 +634,14 @@ static ssize_t hw_regs_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct icdc_d3 *icdc_d3 = dev_get_drvdata(dev);
-	struct snd_soc_codec *codec = icdc_d3->codec;
-	if (!codec) {
+	struct snd_soc_component *component = icdc_d3->component;
+	if (!component) {
 		dev_info(dev, "icdc_d3 is not probe, can not use %s function\n", __func__);
 		return 0;
 	}
-	mutex_lock(&codec->component.io_mutex);
+	mutex_lock(&component->io_mutex);
 	dump_registers_hazard(icdc_d3);
-	mutex_unlock(&codec->component.io_mutex);
+	mutex_unlock(&component->io_mutex);
 	return 0;
 }
 
@@ -655,12 +650,12 @@ static ssize_t hw_regs_store(struct device *dev,
 		size_t count)
 {
 	struct icdc_d3 *icdc_d3 = dev_get_drvdata(dev);
-	struct snd_soc_codec *codec = icdc_d3->codec;
+	struct snd_soc_component *component = icdc_d3->component;
 	const char *start = buf;
 	unsigned int reg, val;
 	int ret_count = 0;
 
-	if (!codec) {
+	if (!component) {
 		dev_info(dev, "icdc_d3 is not probe, can not use %s function\n", __func__);
 		return count;
 	}
@@ -677,9 +672,9 @@ static ssize_t hw_regs_store(struct device *dev,
 			return count;
 	}
 	val = simple_strtoul(start, (char **)&start, 16);
-	mutex_lock(&codec->component.io_mutex);
-	icdc_d3_write(codec, reg, val);
-	mutex_unlock(&codec->component.io_mutex);
+	mutex_lock(&component->io_mutex);
+	icdc_d3_write(component, reg, val);
+	mutex_unlock(&component->io_mutex);
 	return count;
 }
 
@@ -709,7 +704,7 @@ static int icdc_d3_platform_probe(struct platform_device *pdev)
 	spin_lock_init(&icdc_d3->io_lock);
 	platform_set_drvdata(pdev, (void *)icdc_d3);
 
-	ret = snd_soc_register_codec(&pdev->dev,
+	ret = devm_snd_soc_register_component(&pdev->dev,
 			&soc_component_dev_icdc_d3_codec, &icdc_d3_component_dai, 1);
 	if (ret) {
 		dev_err(&pdev->dev, "Faild to register codec\n");
@@ -725,7 +720,6 @@ static int icdc_d3_platform_probe(struct platform_device *pdev)
 static int icdc_d3_platform_remove(struct platform_device *pdev)
 {
 	dev_info(&pdev->dev, "codec icdc-d3 platform remove\n");
-	snd_soc_unregister_codec(&pdev->dev);
 	platform_set_drvdata(pdev, NULL);
 	return 0;
 }
