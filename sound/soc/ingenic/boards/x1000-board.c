@@ -21,14 +21,18 @@
 
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/platform_device.h>
+#include <linux/of.h>
+#include <linux/of_platform.h>
 #include <sound/soc.h>
 #include <sound/jack.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
+
 #include "../as-v1/asoc-aic.h"
 
 struct x1000_icdc {
+	struct device *dev;
+	struct snd_soc_dai_link dai;
 	struct snd_soc_card card;
 	int spk_gpio;
 	int spk_en_level;
@@ -97,6 +101,97 @@ static int x1000_i2s_cdc_dai_link_init(struct snd_soc_pcm_runtime *rtd)
 
 static int snd_x1000_probe(struct platform_device *pdev)
 {
+	struct device_node *np = pdev->dev.of_node;
+	struct device_node *cpu_np = NULL, *platform_np = NULL, *codec_np = NULL;
+	struct platform_device *cpu_pdev;
+	struct x1000_icdc *x1000;
+	struct snd_soc_dai_link_component *comp;
+	int ret;
+	struct device *dev = &pdev->dev;
+    enum of_gpio_flags spk_gpio_flags;
+
+    pr_info("snd_x1000_probe\n");
+    
+	cpu_np = of_parse_phandle(pdev->dev.of_node, "ingenic,cpu-dai", 0);
+	platform_np = of_parse_phandle(pdev->dev.of_node, "ingenic,platform", 0);
+	codec_np = of_parse_phandle(pdev->dev.of_node, "ingenic,codec", 0);
+	if (!cpu_np || !platform_np || !codec_np) {
+		dev_err(dev, "phandle missing or invalid\n");
+		ret = -EINVAL;
+		goto fail;
+	}
+
+	cpu_pdev = of_find_device_by_node(cpu_np);
+	if (!cpu_pdev) {
+		dev_err(dev, "failed to find CPU DAI platform device\n");
+		ret = -EINVAL;
+		goto fail;
+	}
+
+	x1000 = devm_kzalloc(&pdev->dev, sizeof(*x1000), GFP_KERNEL);
+	if (!x1000)
+		return -ENOMEM;
+    
+	comp = devm_kzalloc(dev, 3 * sizeof(*comp), GFP_KERNEL);
+	if (!comp) {
+		ret = -ENOMEM;
+		goto fail;
+	}
+
+	x1000->dev = dev;
+
+    x1000->spk_gpio = of_get_named_gpio_flags(np, "ingenic,spken-gpio", 0, &spk_gpio_flags);
+    if (gpio_is_valid(x1000->spk_gpio)) {
+		unsigned long init_flags;
+		x1000->spk_en_level = (spk_gpio_flags == OF_GPIO_ACTIVE_LOW ? 0 : 1);
+		init_flags = (spk_gpio_flags == OF_GPIO_ACTIVE_LOW ? GPIOF_OUT_INIT_HIGH : GPIOF_OUT_INIT_LOW);
+		ret = devm_gpio_request_one(x1000->dev, x1000->spk_gpio, init_flags, "speaker_en");
+		if (ret)
+			pr_warn("dorado speaker enable pin(%d) request failed\n", x1000->spk_gpio);
+		else
+			pr_info("dorado speaker enable pin(%d) request ok\n", x1000->spk_gpio);
+	}
+	
+	x1000->dai.cpus		= &comp[0];
+	x1000->dai.codecs	= &comp[1];
+	x1000->dai.platforms	= &comp[2];
+
+	x1000->dai.num_cpus	= 1;
+	x1000->dai.num_codecs	= 1;
+	x1000->dai.num_platforms	= 1;
+
+	x1000->dai.name = "ingenic-hifi";
+	x1000->dai.stream_name = "ingenic-hifi-stream";
+	x1000->dai.codecs->dai_name = "ingenic-hifi-analog";
+	x1000->dai.codecs->of_node = codec_np;
+	x1000->dai.cpus->of_node = cpu_np;
+	x1000->dai.platforms->of_node = platform_np;
+    
+    /* for i2s only */
+	x1000->dai.init = &x1000_i2s_cdc_dai_link_init;
+    x1000->dai.ops = &x1000_i2s_cdc_ops;
+	x1000->dai.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
+			    SND_SOC_DAIFMT_CBM_CFM;
+                
+	x1000->card.dev = dev;
+	x1000->card.num_dapm_widgets = ARRAY_SIZE(x1000_dapm_widgets);
+	x1000->card.dapm_widgets = x1000_dapm_widgets;
+	ret = snd_soc_of_parse_card_name(&x1000->card, "ingenic,model");
+	if (ret) {
+		dev_err(dev, "Unable to parse card name\n");
+		goto fail;
+	}
+	ret = snd_soc_of_parse_audio_routing(&x1000->card, "ingenic,audio-routing");
+	if (ret) {
+		dev_err(dev, "Unable to parse routing: %d\n", ret);
+		goto fail;
+	}
+	x1000->card.num_links = 1;
+	x1000->card.owner = THIS_MODULE;
+	x1000->card.dai_link = &x1000->dai;
+
+    
+#if 0
 	struct device_node *snd_node = pdev->dev.of_node;
 	struct x1000_icdc *x1000;
 	struct snd_soc_card *card;
@@ -105,7 +200,7 @@ static int snd_x1000_probe(struct platform_device *pdev)
 	int num_links;
 	int ret = 0, i;
 
-	num_links = of_property_count_strings(snd_node, "ingenic,dai-link");
+    num_links = of_property_count_strings(snd_node, "ingenic,dai-link");
 	if (num_links < 0)
 		return num_links;
 	BUG_ON(!num_links);
@@ -181,15 +276,24 @@ static int snd_x1000_probe(struct platform_device *pdev)
 			dai_link->init = x1000_i2s_cdc_dai_link_init;
 		}
 	}
+#endif
 
-	ret = snd_soc_register_card(card);
+
+
+	ret = snd_soc_register_card(&x1000->card);
 	if (ret) {
-		dev_err(&pdev->dev, "snd_soc_register_card failed %d\n", ret);
-		return ret;
+		dev_err(dev, "snd_soc_register_card failed %d\n", ret);
+		goto fail;
 	}
 
 	platform_set_drvdata(pdev, x1000);
-	dev_info(&pdev->dev, "Sound Card successed\n");
+	dev_info(dev, "Sound Card success\n");
+    
+fail:
+	of_node_put(cpu_np);
+	of_node_put(platform_np);
+	of_node_put(codec_np);    
+
 	return ret;
 }
 
@@ -211,8 +315,7 @@ static struct platform_driver snd_x1000_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
 		.name = "x1000-sound",
-		.pm = &snd_soc_pm_ops,
-		.of_match_table = of_match_ptr(sound_dt_match),
+		.of_match_table = sound_dt_match,
 	},
 	.probe = snd_x1000_probe,
 	.remove = snd_x1000_remove,
