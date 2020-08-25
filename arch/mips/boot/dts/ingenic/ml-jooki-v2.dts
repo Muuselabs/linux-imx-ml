@@ -23,30 +23,17 @@
 		reg = <0x0 0x04000000>;
 	};
 
-	leds {
-		compatible = "gpio-leds";
-		led-0 {
-			gpios = <&gpb 21 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "mmc0";
-		};
-	};
-
-	wlan_pwrseq: msc1-pwrseq {
-		compatible = "mmc-pwrseq-simple";
-
-		clocks = <&lpoclk>;
-		clock-names = "ext_clock";
-
-		reset-gpios = <&gpc 17 GPIO_ACTIVE_LOW>;
-		post-power-on-delay-ms = <200>;
-
-		lpoclk: ap6212a {
-			compatible = "fixed-clock";
-			#clock-cells = <0>;
-			clock-frequency = <32768>;
-		};
-	};
-
+    reg_wifi: regulator-wifi {
+      compatible = "regulator-fixed";
+      regulator-name = "wifi";
+      regulator-min-microvolt = <3300000>;
+      regulator-max-microvolt = <3300000>;
+      gpio = <&gpc 17 GPIO_ACTIVE_HIGH>;
+      startup-delay-us = <70000>;
+      enable-active-high;
+      gpio-open-drain;
+    };
+    
 	sound_halley2_icdc {
 		status = "ok";
 		compatible = "ingenic,x1000-sound";
@@ -126,25 +113,12 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	bus-width = <4>;
-	max-frequency = <50000000>;
+	max-frequency = <500000>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_msc1>;
 
-	non-removable;
-
-	mmc-pwrseq = <&wlan_pwrseq>;
-
-	ap6212a: wifi@1 {
-		compatible = "brcm,bcm4329-fmac";
-		reg = <1>;
-
-		interrupt-parent = <&gpc>;
-		interrupts = <16 IRQ_TYPE_EDGE_FALLING>;
-		interrupt-names = "host-wake";
-
-		brcm,drive-strength = <10>;
-	};
+    non-removable;
 };
 
 &pinctrl {
