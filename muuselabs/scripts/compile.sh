@@ -14,17 +14,14 @@ mkdir $TMP_FS
 cp $INSTALLER $TMP_FS
 
 # allow to override the DTB through the command line
-set +eu
-DTB_OVERRIDE=$1
-set -eu
-DTB=${DTB_OVERRIDE:-ml-j1000.dtb}
+DTB="${1:-ml-j1000.dtb}"
 echo "Compiling with DTB: $DTB"
 
 # Make paths relative to linux-2.6-imx
 cd ../..
 
 set +eu
-source ../sdk/environment-setup-*-linux-gnueabi
+source $YOCTO_SDK_DIR/environment-setup-*-linux-gnueabi
 set -eu
 
 make -j4 zImage modules ${DTB}
