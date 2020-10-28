@@ -14,22 +14,26 @@ mkdir $TMP_FS
 cp $INSTALLER $TMP_FS
 
 # allow to override the DTB through the command line
-DTB="${1:-ml-j1000.dtb}"
+DTB="${1:-ingenic/ml-j2000.dtb}"
 echo "Compiling with DTB: $DTB"
 
 # Make paths relative to linux-2.6-imx
 cd ../..
 
 set +eu
-source $YOCTO_SDK_DIR/environment-setup-*-linux-gnueabi
+source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux
 set -eu
 
-make -j4 zImage modules ${DTB}
+IMAGE_TGT=uImage
 
-cp ./arch/arm/boot/dts/${DTB} $TMP_FS/
-cp ./arch/arm/boot/zImage $TMP_FS/
+make -j4 all ${IMAGE_TGT} ${DTB}
+make -j4 modules || true
+make -j4 headers || true
 
-make ARCH=arm modules_install INSTALL_MOD_PATH=$TMP_FS
+cp ./arch/$ARCH/boot/dts/${DTB} $TMP_FS/
+cp ./arch/$ARCH/boot/${IMAGE_TGT} $TMP_FS/
+
+make ARCH=$ARCH modules_install INSTALL_MOD_PATH=$TMP_FS
 ( cd $TMP_FS && tar czf lib.tgz lib/ && rm -r lib/ )
 
 printf "\nCopy these files to Jooki and run $INSTALLER\n"

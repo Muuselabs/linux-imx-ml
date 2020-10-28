@@ -7,24 +7,13 @@ set -eu
 # Make paths relative.
 cd "$(dirname "$0")"
 
-# allow to override the DTB through the command line
-set +eu
-DTB_OVERRIDE=$1
-set -eu
-DTB=${DTB_OVERRIDE:-ml-j1000.dtb}
-echo "Installing with DTB: $DTB"
-
 # Install the modules in the root file-system.
 tar xzf lib.tgz -C /
 
-cp ./zImage /boot/zImage
-cp ./${DTB} /boot/${DTB}
+dd if=/tmp/to_jooki/uImage of=/dev/mmcblk0p1 bs=1024
 
-#flash_erase  /dev/mtd2 0 0
-#nandwrite -p /dev/mtd2             ./zImage
-#nandwrite -p /dev/mtd2 -s 0x7e0000 ./${DTB}
 sync
 
 printf "Press any key to reboot..."
 read dummy
-/sbin/shutdown -r now
+/sbin/reboot
