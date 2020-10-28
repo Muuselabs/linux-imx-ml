@@ -7,8 +7,8 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 
 / {
-	compatible = "muuselabs,jooki-v2", "ingenic,x1000";
-	model = "Muuselabs Jooki V2";
+	compatible = "muuselabs,j2000", "ingenic,x1000";
+	model = "Muuselabs Jooki J2000";
 
 	aliases {
 		serial2 = &uart2;
