@@ -23,17 +23,6 @@
 		reg = <0x0 0x04000000>;
 	};
 
-    reg_wifi: regulator-wifi {
-      compatible = "regulator-fixed";
-      regulator-name = "wifi";
-      regulator-min-microvolt = <3300000>;
-      regulator-max-microvolt = <3300000>;
-      gpio = <&gpc 17 GPIO_ACTIVE_HIGH>;
-      startup-delay-us = <70000>;
-      enable-active-high;
-      gpio-open-drain;
-    };
-    
 	sound_halley2_icdc {
 		status = "ok";
 		compatible = "ingenic,x1000-sound";
@@ -110,15 +99,13 @@
 &msc1 {
 	status = "okay";
 
-	#address-cells = <1>;
-	#size-cells = <0>;
-	bus-width = <4>;
+	bus-width = <1>;
 	max-frequency = <500000>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_msc1>;
 
-    non-removable;
+    cd-gpios = <&gpc 17 GPIO_ACTIVE_HIGH>;
 };
 
 &pinctrl {
