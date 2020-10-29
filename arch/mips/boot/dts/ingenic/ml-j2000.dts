@@ -63,6 +63,13 @@
 	pinctrl-0 = <&pins_i2c0>;
 };
 
+&uart0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart0>;
+};
+
 &uart2 {
 	status = "okay";
 
@@ -87,7 +94,7 @@
 &msc0 {
 	status = "okay";
 
-	bus-width = <1>;
+	bus-width = <4>;
 	max-frequency = <50000000>;
 
 	pinctrl-names = "default";
@@ -99,19 +106,26 @@
 &msc1 {
 	status = "okay";
 
-	bus-width = <1>;
+	bus-width = <4>;
 	max-frequency = <500000>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_msc1>;
 
-    cd-gpios = <&gpc 17 GPIO_ACTIVE_HIGH>;
+    non-removable;
+   /* cd-gpios = <&gpc 17 GPIO_ACTIVE_HIGH>; */
 };
 
 &pinctrl {
 	pins_i2c0: i2c0 {
 		function = "i2c0";
 		groups = "i2c0-data";
+		bias-disable;
+	};
+
+	pins_uart0: uart0 {
+		function = "uart0";
+		groups = "uart0-data", "uart0-hwflow";
 		bias-disable;
 	};
 
@@ -142,6 +156,6 @@
 	pins_msc1: msc1 {
 		function = "mmc1";
 		groups = "mmc1-1bit", "mmc1-4bit";
-		bias-disable;
+		bias-pull-up;
 	};
 };
