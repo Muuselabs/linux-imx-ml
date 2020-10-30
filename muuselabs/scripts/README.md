@@ -13,5 +13,5 @@ cd $ML_GIT/linux-imx-ml
 muuselabs/scripts/prep_from_yocto.sh
 muuselabs/scripts/menuconfig.sh ml-j1000_defconfig
 muuselabs/scripts/compile.sh ml-j1000.dtb
-muuselabs/scripts/ssh_install.sh ml-j1000.db
+muuselabs/scripts/ssh_install.sh ml-j1000.dtb
 ```
