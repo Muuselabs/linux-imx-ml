@@ -1109,6 +1109,9 @@ static int x1000_pwm_pwm4_pins[] = { 0x58, };
 static int x1000_mac_pins[] = {
 	0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x26,
 };
+static int x1000_i2s_pins[] = {
+	0x20, 0x21, 0x22, 0x23, 0x24,
+};
 
 static int x1000_uart0_data_funcs[] = { 0, 0, };
 static int x1000_uart0_hwflow_funcs[] = { 0, 0, };
@@ -1163,6 +1166,9 @@ static int x1000_pwm_pwm2_funcs[] = { 1, };
 static int x1000_pwm_pwm3_funcs[] = { 2, };
 static int x1000_pwm_pwm4_funcs[] = { 0, };
 static int x1000_mac_funcs[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, };
+static int x1000_i2s_funcs[] = {
+	1, 1, 1, 1, 1,
+};
 
 static const struct group_desc x1000_groups[] = {
 	INGENIC_PIN_GROUP("uart0-data", x1000_uart0_data),
@@ -1215,6 +1221,7 @@ static const struct group_desc x1000_groups[] = {
 	INGENIC_PIN_GROUP("pwm3", x1000_pwm_pwm3),
 	INGENIC_PIN_GROUP("pwm4", x1000_pwm_pwm4),
 	INGENIC_PIN_GROUP("mac", x1000_mac),
+	INGENIC_PIN_GROUP("i2s", x1000_i2s),
 };
 
 static const char *x1000_uart0_groups[] = { "uart0-data", "uart0-hwflow", };
@@ -1256,6 +1263,7 @@ static const char *x1000_pwm2_groups[] = { "pwm2", };
 static const char *x1000_pwm3_groups[] = { "pwm3", };
 static const char *x1000_pwm4_groups[] = { "pwm4", };
 static const char *x1000_mac_groups[] = { "mac", };
+static const char *x1000_i2s_groups[] = { "i2s", };
 
 static const struct function_desc x1000_functions[] = {
 	{ "uart0", x1000_uart0_groups, ARRAY_SIZE(x1000_uart0_groups), },
@@ -1279,6 +1287,7 @@ static const struct function_desc x1000_functions[] = {
 	{ "pwm3", x1000_pwm3_groups, ARRAY_SIZE(x1000_pwm3_groups), },
 	{ "pwm4", x1000_pwm4_groups, ARRAY_SIZE(x1000_pwm4_groups), },
 	{ "mac", x1000_mac_groups, ARRAY_SIZE(x1000_mac_groups), },
+	{ "i2s", x1000_i2s_groups, ARRAY_SIZE(x1000_i2s_groups), },
 };
 
 static const struct ingenic_chip_info x1000_chip_info = {

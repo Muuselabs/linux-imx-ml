@@ -158,4 +158,10 @@
 		groups = "mmc1-1bit", "mmc1-4bit";
 		bias-pull-up;
 	};
+
+	i2s_pins:i2s_pins {
+		function = "i2s";
+		groups = "i2s";
+		bias-disable;
+	};
 };
