@@ -116,6 +116,11 @@
    /* cd-gpios = <&gpc 17 GPIO_ACTIVE_HIGH>; */
 };
 
+&aic {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s_pins>;
+};
+
 &pinctrl {
 	pins_i2c0: i2c0 {
 		function = "i2c0";
