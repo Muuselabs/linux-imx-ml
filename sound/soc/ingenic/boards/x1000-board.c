@@ -43,11 +43,11 @@ int x1000_i2s_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_p
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int ret;
 
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S|SND_SOC_DAIFMT_CBM_CFM);
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S|SND_SOC_DAIFMT_CBS_CFM);
 	if (ret)
 		return ret;
 
-	ret = snd_soc_dai_set_sysclk(cpu_dai, INGENIC_I2S_INNER_CODEC,
+	ret = snd_soc_dai_set_sysclk(cpu_dai, INGENIC_I2S_EX_CODEC,
 								 24000000, SND_SOC_CLOCK_OUT);
 	if (ret)
 		return ret;
@@ -171,7 +171,7 @@ static int snd_x1000_probe(struct platform_device *pdev)
 	x1000->dai.init = &x1000_i2s_cdc_dai_link_init;
     x1000->dai.ops = &x1000_i2s_cdc_ops;
 	x1000->dai.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
-			    SND_SOC_DAIFMT_CBM_CFM;
+			    SND_SOC_DAIFMT_CBS_CFM;
                 
 	x1000->card.dev = dev;
 	x1000->card.num_dapm_widgets = ARRAY_SIZE(x1000_dapm_widgets);
