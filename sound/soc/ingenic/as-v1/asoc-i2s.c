@@ -174,8 +174,10 @@ static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
 	int phys_width = snd_pcm_format_physical_width(params_format(params));
 	struct ingenic_i2s *ingenic_i2s = dev_get_drvdata(dai->dev);
 	struct device *aic = ingenic_i2s->aic;
+	struct ingenic_aic *ingenic_aic = dev_get_drvdata(aic);
 	enum dma_slave_buswidth buswidth;
 	int trigger;
+	uint32_t div;
 
 	I2S_DEBUG_MSG("enter %s, substream = %s\n", __func__,
 				  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
@@ -216,6 +218,16 @@ static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
 		__i2s_set_iss(aic, fmt_width);
 		__i2s_set_receive_trigger(aic, (trigger/2 - 1));
 	}
+
+	/* Set divider based on sample rate.
+	 *
+	 * See 6.2.6 AIC I2S/MSB-justified Clock Divider Register (I2SDIV)
+	 * BIT_CLK needs to be 64 x sample freq. We need to write the one less than
+	 * the divisor value here */
+	div = ingenic_aic->clk_rate / (params_rate(params) * 64);
+	div--;
+
+	__i2s_set_dv(aic, div);
 
 	return 0;
 }
