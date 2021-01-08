@@ -278,9 +278,9 @@ static const struct ingenic_cgu_clk_info x1000_cgu_clocks[] = {
 	},
 
 	[X1000_CLK_I2S] = {
-		"i2s", CGU_CLK_MUX,
+		"i2s", CGU_CLK_MUX | CGU_CLK_I2SDIV,
 //		.parents = { X1000_CLK_EXCLK, X1000_CLK_SCLKA, -1, X1000_CLK_MPLL },
-		.parents = { X1000_CLK_EXCLK, -1, -1, -1 },
+		.parents = { X1000_CLK_EXCLK, -1, -1, X1000_CLK_MPLL },
 		.mux = { CGU_REG_I2SCDR, 30, 2 },
 	},
 

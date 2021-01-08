@@ -224,8 +224,11 @@ static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
 	 * See 6.2.6 AIC I2S/MSB-justified Clock Divider Register (I2SDIV)
 	 * BIT_CLK needs to be 64 x sample freq. We need to write the one less than
 	 * the divisor value here */
-	div = ingenic_aic->clk_rate / (params_rate(params) * 64);
+	div = DIV_ROUND_CLOSEST(ingenic_aic->clk_rate, (params_rate(params) * 64));
 	div--;
+
+	/* We only have 9 bits for div. */
+	WARN_ON(div > 0x1ff);
 
 	__i2s_set_dv(aic, div);
 

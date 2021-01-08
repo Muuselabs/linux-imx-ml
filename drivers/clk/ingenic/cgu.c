@@ -375,7 +375,26 @@ ingenic_clk_recalc_rate(struct clk_hw *hw, unsigned long parent_rate)
 
 	clk_info = &cgu->clock_info[ingenic_clk->idx];
 
-	if (clk_info->type & CGU_CLK_DIV) {
+	if (clk_info->type & CGU_CLK_I2SDIV) {
+		int m, n;
+
+		div_reg = readl(cgu->base + clk_info->mux.reg);
+
+		/* If we haven't selected the MPLL we also don't divide, so return extclk. */
+		if ((div_reg >> 30) == 0) {
+			return clk_get_rate(clk_get(NULL, "ext"));
+		}
+
+		/* If M/N division is disabled we're at mpll rate */
+		if (! (div_reg & (1 << 29))) {
+			return clk_get_rate(clk_get(NULL, "mpll"));
+		}
+
+		m = (div_reg >> 13) & 0x1ff;
+		n = div_reg & 0x1fff;
+
+		return m * div64_u64(clk_get_rate(clk_get(NULL, "mpll")), n);
+	} else if (clk_info->type & CGU_CLK_DIV) {
 		div_reg = readl(cgu->base + clk_info->div.reg);
 		div = (div_reg >> clk_info->div.shift) &
 		      GENMASK(clk_info->div.bits - 1, 0);
@@ -449,7 +468,9 @@ ingenic_clk_round_rate(struct clk_hw *hw, unsigned long req_rate,
 
 	clk_info = &cgu->clock_info[ingenic_clk->idx];
 
-	if (clk_info->type & CGU_CLK_DIV)
+	if (clk_info->type & CGU_CLK_I2SDIV) {
+		return req_rate;
+	} else if (clk_info->type & CGU_CLK_DIV)
 		div = ingenic_clk_calc_div(clk_info, *parent_rate, req_rate);
 	else if (clk_info->type & CGU_CLK_FIXDIV)
 		div = clk_info->fixdiv.div;
@@ -467,12 +488,31 @@ ingenic_clk_set_rate(struct clk_hw *hw, unsigned long req_rate,
 	const unsigned timeout = 100;
 	unsigned long rate, flags;
 	unsigned int hw_div, div, i;
+	u64 N;
 	u32 reg, mask;
 	int ret = 0;
 
 	clk_info = &cgu->clock_info[ingenic_clk->idx];
 
-	if (clk_info->type & CGU_CLK_DIV) {
+	if (clk_info->type & CGU_CLK_I2SDIV) {
+		reg = 0;
+		reg |= (0x3 << 30); /* MPLL = 1, PLL = 1 */
+		reg |= (1 << 29);   /* CE_I2S: Enable M/N divirder */
+
+		reg |= (0x1ff << 13); /* M = 0x1ff */
+		N = clk_get_rate(clk_get(NULL, "mpll"));
+		N *= 0x1ff;
+		N = div64_u64(N, req_rate);
+		reg |= (N & ((1 << 13) - 1));
+
+		writel(reg, cgu->base + clk_info->mux.reg);
+
+		/* Read and write I2SCDR1 as the datasheet recommends. */
+		reg = readl(cgu->base + 0x70);
+		writel(reg, cgu->base + 0x70);
+
+		return 0;
+	} else if (clk_info->type & CGU_CLK_DIV) {
 		div = ingenic_clk_calc_div(clk_info, parent_rate, req_rate);
 		rate = DIV_ROUND_UP(parent_rate, div);
 
@@ -694,6 +734,10 @@ static int ingenic_register_clock(struct ingenic_cgu *cgu, unsigned idx)
 		}
 	} else {
 		clk_init.ops = &ingenic_clk_ops;
+	}
+
+	if (caps & CGU_CLK_I2SDIV) {
+		caps &= ~CGU_CLK_I2SDIV;
 	}
 
 	/* nothing to do for gates or fixed dividers */
