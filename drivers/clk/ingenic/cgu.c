@@ -496,14 +496,21 @@ ingenic_clk_set_rate(struct clk_hw *hw, unsigned long req_rate,
 
 	if (clk_info->type & CGU_CLK_I2SDIV) {
 		reg = 0;
-		reg |= (0x3 << 30); /* MPLL = 1, PLL = 1 */
-		reg |= (1 << 29);   /* CE_I2S: Enable M/N divirder */
+		rate = clk_get_rate(clk_get(NULL, "ext"));
+		if (req_rate == rate) {
+			/* Set I2S clock as our parent clock. */
+			/* MPLL = 0, PLL = 0 */
+			/* CE_I2S: Disable M/N divider */
+		} else {
+			reg |= (0x3 << 30); /* MPLL = 1, PLL = 1 */
+			reg |= (1 << 29);   /* CE_I2S: Enable M/N divirder */
 
-		reg |= (0x1ff << 13); /* M = 0x1ff */
-		N = clk_get_rate(clk_get(NULL, "mpll"));
-		N *= 0x1ff;
-		N = div64_u64(N, req_rate);
-		reg |= (N & ((1 << 13) - 1));
+			reg |= (0x1ff << 13); /* M = 0x1ff */
+			N = clk_get_rate(clk_get(NULL, "mpll"));
+			N *= 0x1ff;
+			N = div64_u64(N, req_rate);
+			reg |= (N & ((1 << 13) - 1));
+		}
 
 		writel(reg, cgu->base + clk_info->mux.reg);
 
