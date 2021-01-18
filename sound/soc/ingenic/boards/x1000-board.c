@@ -36,22 +36,23 @@ struct x1000_icdc {
 	struct snd_soc_card card;
 	int spk_gpio;
 	int spk_en_level;
+	bool headphones;
 };
 
 int x1000_i2s_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params) {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct x1000_icdc *x1000 = dev_get_drvdata(rtd->card->dev);
 	int ret;
 
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S|SND_SOC_DAIFMT_CBS_CFM);
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
+			(x1000->headphones ? SND_SOC_DAIFMT_CBM_CFM : SND_SOC_DAIFMT_CBS_CFM));
 	if (ret)
 		return ret;
 
-	ret = snd_soc_dai_set_sysclk(cpu_dai, INGENIC_I2S_EX_CODEC,
-								 270640000, SND_SOC_CLOCK_OUT);
-	if (ret)
-		return ret;
-	return 0;
+	ret = snd_soc_dai_set_sysclk(cpu_dai, x1000->headphones ? INGENIC_I2S_INNER_CODEC : INGENIC_I2S_EX_CODEC,
+			x1000->headphones ? 24000000 : 270640000, SND_SOC_CLOCK_OUT);
+	return ret;
 };
 
 int x1000_i2s_hw_free(struct snd_pcm_substream *substream)
@@ -98,6 +99,33 @@ static int x1000_i2s_cdc_dai_link_init(struct snd_soc_pcm_runtime *rtd)
 	snd_soc_dapm_enable_pin(dapm, "DMic");
 	return 0;
 }
+
+static ssize_t headphones_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct x1000_icdc *x1000 = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, x1000->headphones ? "headphones" : "speaker");
+}
+
+static ssize_t headphones_store(struct device *dev,
+		struct device_attribute *attr, const char *buf,
+		size_t count)
+{
+	struct x1000_icdc *x1000 = dev_get_drvdata(dev);
+
+	if (strncmp(buf, "headphones", 10) == 0) {
+		x1000->headphones = true;
+	} else if (strncmp(buf, "speaker", 7) == 0) {
+		x1000->headphones = false;
+	} else {
+		return -EINVAL;
+	}
+
+	return count;
+}
+
+static struct device_attribute x1000_i2s_sysfs_attr = __ATTR_RW(headphones);
 
 static int snd_x1000_probe(struct platform_device *pdev)
 {
@@ -288,7 +316,12 @@ static int snd_x1000_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, x1000);
 	dev_info(dev, "Sound Card success\n");
-    
+
+	ret = device_create_file(&pdev->dev, &x1000_i2s_sysfs_attr);
+	if (ret) {
+		dev_err(dev, "device_create_file failed %d\n", ret);
+	}
+
 fail:
 	of_node_put(cpu_np);
 	of_node_put(platform_np);
