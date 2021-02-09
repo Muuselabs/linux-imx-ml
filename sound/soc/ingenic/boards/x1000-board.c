@@ -51,7 +51,7 @@ int x1000_i2s_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_p
 		return ret;
 
 	ret = snd_soc_dai_set_sysclk(cpu_dai, x1000->headphones ? INGENIC_I2S_INNER_CODEC : INGENIC_I2S_EX_CODEC,
-			x1000->headphones ? 24000000 : 270640000, SND_SOC_CLOCK_OUT);
+			x1000->headphones ? 24000000 : 270640000, SND_SOC_CLOCK_IN);
 	return ret;
 };
 

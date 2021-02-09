@@ -123,11 +123,17 @@ static int ingenic_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 
 	if (clk_id == INGENIC_I2S_INNER_CODEC) {
 		__aic_select_internal_codec(aic);
-	} else
+	} else {
 		__aic_select_external_codec(aic);
+	}
 
 	aic_set_rate(aic, freq);
 
+    /* set the divider to a high value to avoid EMI issues 
+     * when hwparams has not been called yet
+     */
+	__i2s_set_dv(aic, 255);
+        
 	if (dir  == SND_SOC_CLOCK_OUT)
 		__i2s_select_sysclk_output(aic);
 	else
