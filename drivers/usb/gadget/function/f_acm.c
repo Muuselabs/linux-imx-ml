@@ -16,9 +16,10 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/err.h>
+#include <linux/sysfs.h>
+#include <linux/kobject.h>
 
 #include "u_serial.h"
-
 
 /*
  * This CDC ACM function support just wraps control functions and
@@ -79,6 +80,30 @@ static inline struct f_acm *func_to_acm(struct usb_function *f)
 static inline struct f_acm *port_to_acm(struct gserial *p)
 {
 	return container_of(p, struct f_acm, port);
+}
+
+/*-------------------------------------------------------------------------*/
+/* Line state access through sysfs */
+
+volatile int line_state_value = -1;
+struct kobject *kobj_ref;
+
+/*
+ * This fuction will be called when we read the sysfs file
+ */
+static ssize_t sysfs_line_state_show(struct kobject *kobj,
+                struct kobj_attribute *attr, char *buf)
+{
+  return sprintf(buf, "%d", line_state_value);
+}
+
+struct kobj_attribute sysfs_line_state_attr =
+    __ATTR(line_state_value, 0660, sysfs_line_state_show, NULL);
+
+static void set_line_state(struct f_acm	*acm, int w_value) {
+  if(acm->port_num == 0) {
+    line_state_value = w_value;
+  }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -389,6 +414,7 @@ static int acm_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 		 * that bit, we should return to that no-flow state.
 		 */
 		acm->port_handshake_bits = w_value;
+        set_line_state(acm, w_value);
 		break;
 
 	default:
@@ -688,6 +714,18 @@ acm_bind(struct usb_configuration *c, struct usb_function *f)
 	if (status)
 		goto fail;
 
+    /* Creating a directory in /sys/kernel/ */
+    /* note: only works for the fist port */
+    if(acm->port_num == 0) {
+      kobj_ref = kobject_create_and_add("f_acm_sysfs", kernel_kobj);
+
+      /* Creating sysfs file */
+      if(sysfs_create_file(kobj_ref, &sysfs_line_state_attr.attr)){
+        printk(KERN_INFO "Cannot create sysfs file......\n");
+        goto fail_sysfs;
+      }
+    }
+
 	dev_dbg(&cdev->gadget->dev,
 		"acm ttyGS%d: %s speed IN/%s OUT/%s NOTIFY/%s\n",
 		acm->port_num,
@@ -696,6 +734,9 @@ acm_bind(struct usb_configuration *c, struct usb_function *f)
 		acm->port.in->name, acm->port.out->name,
 		acm->notify->name);
 	return 0;
+
+fail_sysfs:
+    kobject_put(kobj_ref);
 
 fail:
 	if (acm->notify_req)
@@ -709,6 +750,11 @@ fail:
 static void acm_unbind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct f_acm		*acm = func_to_acm(f);
+
+    if(acm->port_num == 0) {
+      kobject_put(kobj_ref);
+      sysfs_remove_file(kernel_kobj, &sysfs_line_state_attr.attr);
+    }
 
 	acm_string_defs[0].id = 0;
 	usb_free_all_descriptors(f);
