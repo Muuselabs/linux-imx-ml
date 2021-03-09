@@ -148,6 +148,7 @@ static void ingenic_pcm_dma_complete(void *data)
 		return;
 	}
 
+#ifdef DEBUG_TO_FILE
 	if (prtd->file) {
 		prtd->copy_start = substream->runtime->dma_area + prtd->pos;
 		prtd->copy_length = snd_pcm_lib_period_bytes(substream);
@@ -155,6 +156,7 @@ static void ingenic_pcm_dma_complete(void *data)
 			printk(KERN_WARNING"debug file %s may loss data\n", prtd->file_name);
 		schedule_work(&prtd->debug_work);
 	}
+#endif
 
 	prtd->pos += snd_pcm_lib_period_bytes(substream);
 	if (prtd->pos >= snd_pcm_lib_buffer_bytes(substream))
@@ -275,6 +277,7 @@ static snd_pcm_uframes_t ingenic_pcm_pointer(struct snd_soc_component *component
 	return ingenic_pcm_pointer_residue(substream);
 }
 
+#ifdef DEBUG_TO_FILE
 static void debug_work(struct work_struct *debug_work)
 {
 	struct ingenic_pcm_runtime_data *prtd =
@@ -335,6 +338,7 @@ static void ingenic_pcm_close_debug_file(struct snd_pcm_substream *substream)
 	kfree(prtd->file_name);
 	return;
 }
+#endif
 
 static void stopdma_delayed_work(struct work_struct *work)
 {
@@ -431,7 +435,10 @@ static int ingenic_pcm_open(struct snd_soc_component *component,
 	atomic_set(&prtd->wait_stopdma, 0);
 	substream->runtime->private_data = prtd;
 
+#ifdef DEBUG_TO_FILE
 	ingenic_pcm_open_debug_file(substream);
+#endif
+
 	return 0;
 }
 
@@ -445,7 +452,9 @@ static int ingenic_pcm_close(struct snd_soc_component *component,
 	BUG_ON(atomic_read(&prtd->wait_stopdma));
 	flush_delayed_work(&prtd->stopdma_delayed_work);
 
+#ifdef DEBUG_TO_FILE
 	ingenic_pcm_close_debug_file(substream);
+#endif
 
 	substream->private_data = NULL;
 

@@ -12,6 +12,7 @@ struct ingenic_pcm_runtime_data {
 	unsigned long stopdma_delayed_jiffies;
 	atomic_t wait_stopdma;
 
+#ifdef DEBUG_TO_FILE
 	/* debug interface just use in debug*/
 	void *copy_start;
 	unsigned int copy_length;
@@ -20,6 +21,7 @@ struct ingenic_pcm_runtime_data {
 	mm_segment_t old_fs;
 	char* file_name;
 	struct work_struct debug_work;
+#endif
 };
 
 static inline struct ingenic_pcm_runtime_data *substream_to_prtd(
