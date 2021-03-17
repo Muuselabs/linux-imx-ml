@@ -37,37 +37,41 @@ parse_symbol() {
 	symbol=${symbol#\(}
 	symbol=${symbol%\)}
 
-	# Strip segment
-	local segment
-	if [[ $symbol == *:* ]] ; then
-		segment=${symbol%%:*}:
-		symbol=${symbol#*:}
-	fi
-
-	# Strip the symbol name so that we could look it up
-	local name=${symbol%+*}
-
-	# Use 'nm vmlinux' to figure out the base address of said symbol.
-	# It's actually faster to call it every time than to load it
-	# all into bash.
-	if [[ "${cache[$module,$name]+isset}" == "isset" ]]; then
-		local base_addr=${cache[$module,$name]}
+	local address=""
+	if [[ $symbol =~ 0x[0-9a-fA-F]{8} ]]; then
+		address=$symbol
 	else
-		local base_addr=$(nm "$objfile" | grep -i ' t ' | awk "/ $name\$/ {print \$1}" | head -n1)
-		cache[$module,$name]="$base_addr"
+		# Strip segment
+		local segment
+		if [[ $symbol == *:* ]] ; then
+			segment=${symbol%%:*}:
+			symbol=${symbol#*:}
+		fi
+
+		# Strip the symbol name so that we could look it up
+		local name=${symbol%+*}
+
+		# Use 'nm vmlinux' to figure out the base address of said symbol.
+		# It's actually faster to call it every time than to load it
+		# all into bash.
+		if [[ "${cache[$module,$name]+isset}" == "isset" ]]; then
+			local base_addr=${cache[$module,$name]}
+		else
+			local base_addr=$(nm "$objfile" | grep -i ' t ' | awk "/ $name\$/ {print \$1}" | head -n1)
+			cache[$module,$name]="$base_addr"
+		fi
+		# Let's start doing the math to get the exact address into the
+		# symbol. First, strip out the symbol total length.
+		local expr=${symbol%/*}
+
+		# Now, replace the symbol name with the base address we found
+		# before.
+		expr=${expr/$name/0x$base_addr}
+
+		# Evaluate it to find the actual address
+		expr=$((expr))
+		address=$(printf "%x\n" "$expr")
 	fi
-	# Let's start doing the math to get the exact address into the
-	# symbol. First, strip out the symbol total length.
-	local expr=${symbol%/*}
-
-	# Now, replace the symbol name with the base address we found
-	# before.
-	expr=${expr/$name/0x$base_addr}
-
-	# Evaluate it to find the actual address
-	expr=$((expr))
-	local address=$(printf "%x\n" "$expr")
-
 	# Pass it to addr2line to get filename and line number
 	# Could get more than one result
 	if [[ "${cache[$module,$address]+isset}" == "isset" ]]; then
