@@ -85,8 +85,10 @@ static inline struct f_acm *port_to_acm(struct gserial *p)
 /*-------------------------------------------------------------------------*/
 /* Line state access through sysfs */
 
-volatile int line_state_value = -1;
+
+
 struct kobject *kobj_ref;
+struct f_acm	*sysfs_acm = NULL;
 
 /*
  * This fuction will be called when we read the sysfs file
@@ -94,17 +96,22 @@ struct kobject *kobj_ref;
 static ssize_t sysfs_line_state_show(struct kobject *kobj,
                 struct kobj_attribute *attr, char *buf)
 {
-  return sprintf(buf, "%d", line_state_value);
+  if (sysfs_acm) {
+    return sprintf(buf, "%d %d %d %d %d", 
+                  sysfs_acm->port_handshake_bits, 
+                  sysfs_acm->port_line_coding.dwDTERate,
+                  sysfs_acm->port_line_coding.bCharFormat,
+                  sysfs_acm->port_line_coding.bParityType,
+                  sysfs_acm->port_line_coding.bDataBits
+                  );
+  } else {
+    buf[0] = '\0';
+    return 1;
+  }
 }
 
 struct kobj_attribute sysfs_line_state_attr =
     __ATTR(line_state_value, 0660, sysfs_line_state_show, NULL);
-
-static void set_line_state(struct f_acm	*acm, int w_value) {
-  if(acm->port_num == 0) {
-    line_state_value = w_value;
-  }
-}
 
 /*-------------------------------------------------------------------------*/
 
@@ -414,7 +421,6 @@ static int acm_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 		 * that bit, we should return to that no-flow state.
 		 */
 		acm->port_handshake_bits = w_value;
-        set_line_state(acm, w_value);
 		break;
 
 	default:
@@ -717,6 +723,7 @@ acm_bind(struct usb_configuration *c, struct usb_function *f)
     /* Creating a directory in /sys/kernel/ */
     /* note: only works for the fist port */
     if(acm->port_num == 0) {
+      sysfs_acm = acm;
       kobj_ref = kobject_create_and_add("f_acm_sysfs", kernel_kobj);
 
       /* Creating sysfs file */
@@ -754,6 +761,7 @@ static void acm_unbind(struct usb_configuration *c, struct usb_function *f)
     if(acm->port_num == 0) {
       kobject_put(kobj_ref);
       sysfs_remove_file(kernel_kobj, &sysfs_line_state_attr.attr);
+      sysfs_acm = NULL;
     }
 
 	acm_string_defs[0].id = 0;
