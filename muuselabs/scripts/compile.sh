@@ -20,9 +20,10 @@ echo "Compiling with DTB: $DTB"
 # Make paths relative to linux-2.6-imx
 cd ../..
 
-set +eu
-source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux
-set -eu
+set -e
+set +u
+source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux || source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux-musl
+set -u
 
 IMAGE_TGT=uImage
 
