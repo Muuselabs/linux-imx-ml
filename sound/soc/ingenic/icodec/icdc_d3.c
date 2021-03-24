@@ -272,13 +272,18 @@ static int ingenic_icdc_startup(struct snd_pcm_substream *substream,
 		struct snd_soc_dai *dai)
 {
     struct snd_soc_component *component = dai->component;
-    
+
+	snd_soc_component_update_bits(component, SCODA_REG_CR_DAC , SCODA_CR_DAC_ZERO_MASK, 
+                                  1 << SCODA_CR_DAC_ZERO_SHIFT);
+
 	/*power on codec*/
 	if (snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 0))
 		msleep(250);
 	if (snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 0))
 		msleep(400);
 
+	snd_soc_component_update_bits(component, SCODA_REG_CR_DAC , SCODA_CR_DAC_ZERO_MASK, 
+                                  0 << SCODA_CR_DAC_ZERO_SHIFT);
 	return 0;
 }
 
@@ -291,6 +296,8 @@ static void ingenic_icdc_shutdown(struct snd_pcm_substream *substream,
 	/*power off codec*/
 	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_SLEEP_MASK, 1);
 	snd_soc_component_update_bits(component, SCODA_REG_CR_VIC, SCODA_CR_VIC_SB_MASK, 1);
+    snd_soc_component_update_bits(component, SCODA_REG_CR_DAC , SCODA_CR_DAC_ZERO_MASK, 
+                                  1 << SCODA_CR_DAC_ZERO_SHIFT);
 	return;
 }
 

@@ -29,6 +29,7 @@
 #include <linux/of_gpio.h>
 
 #include "../as-v1/asoc-aic.h"
+#include "../icodec/icdc_d3.h"
 
 struct x1000_icdc {
 	struct device *dev;
@@ -37,13 +38,43 @@ struct x1000_icdc {
 	int spk_gpio;
 	int spk_en_level;
 	bool headphones;
+    // HACK: this is only OK for accessing the codec and for playback-only
+    struct snd_pcm_substream *substream; 
 };
 
+/* this function controls the headphones output pads
+ * based upon the headphones state
+ */
+static void update_codec_output_state(struct x1000_icdc *x1000) {
+    struct snd_soc_component *component;
+    uint32_t mask, val;
+
+	for_each_card_components(&x1000->card, component) {
+      printk("==> %s\n", component->name);
+		if (!strcmp(component->name, "10020000.aic:inner-codec")) {
+			printk("%s headphone output pull-downs.\n", 
+                    (x1000->headphones ? "disabling" : "enabling"));
+            mask = SCODA_CR_DAC_ZERO_MASK | SCODA_CR_DAC_SMUTE_MASK | SCODA_CR_DAC_SB_MASK;
+            val = (x1000->headphones ? 0 : mask);
+            snd_soc_component_update_bits(component, SCODA_REG_CR_DAC , mask, val);
+			break;
+		}
+	}
+
+}
+
 int x1000_i2s_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params) {
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	int ret;
+
+    struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct x1000_icdc *x1000 = dev_get_drvdata(rtd->card->dev);
-	int ret;
+    
+    // we should not overwrite this
+    BUG_ON(x1000->substream != NULL);
+    x1000->substream = substream;
+
+	update_codec_output_state(x1000);
 
 	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
 			(x1000->headphones ? SND_SOC_DAIFMT_CBM_CFM : SND_SOC_DAIFMT_CBS_CFM));
@@ -57,6 +88,11 @@ int x1000_i2s_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_p
 
 int x1000_i2s_hw_free(struct snd_pcm_substream *substream)
 {
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct x1000_icdc *x1000 = dev_get_drvdata(rtd->card->dev);
+      
+	x1000->substream = NULL;
+
 	/*notify release pll*/
 	return 0;
 };
@@ -121,6 +157,11 @@ static ssize_t headphones_store(struct device *dev,
 	} else {
 		return -EINVAL;
 	}
+
+    /* reconfigure the pull-downs on the outputs to avoid
+     * noise on the headphone output
+     */
+    update_codec_output_state(x1000);
 
 	return count;
 }
