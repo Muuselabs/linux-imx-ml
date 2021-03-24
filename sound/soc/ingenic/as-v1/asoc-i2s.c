@@ -30,16 +30,16 @@
 
 static int ingenic_i2s_debug = 0;
 module_param(ingenic_i2s_debug, int, 0644);
-#define I2S_DEBUG_MSG(msg...)					\
-	do {										\
-		if (ingenic_i2s_debug)					\
-			pr_debug("I2S: " msg);				\
-	} while(0)
+#define I2S_DEBUG_MSG(msg...)                                                  \
+	do {                                                                   \
+		if (ingenic_i2s_debug)                                         \
+			pr_debug("I2S: " msg);                                 \
+	} while (0)
 
 struct ingenic_i2s {
-	struct device *aic;	/*register access device*/
+	struct device *aic; /*register access device*/
 #define I2S_WRITE 0x1
-#define I2S_READ  0x2
+#define I2S_READ 0x2
 	int i2s_mode;
 	struct snd_dmaengine_dai_dma_data playback_dma_data;
 	struct snd_dmaengine_dai_dma_data capture_dma_data;
@@ -57,13 +57,19 @@ static void dump_registers(struct device *aic)
 {
 	struct ingenic_aic *ingenic_aic = dev_get_drvdata(aic);
 
-	pr_info("AIC_FR\t\t%p : 0x%08x\n", (ingenic_aic->vaddr_base+AICFR),ingenic_aic_read_reg(aic, AICFR));
-	pr_info("AIC_CR\t\t%p : 0x%08x\n", (ingenic_aic->vaddr_base+AICCR),ingenic_aic_read_reg(aic, AICCR));
-	pr_info("AIC_I2SCR\t%p : 0x%08x\n",(ingenic_aic->vaddr_base+I2SCR),ingenic_aic_read_reg(aic, I2SCR));
-	pr_info("AIC_SR\t\t%p : 0x%08x\n", (ingenic_aic->vaddr_base+AICSR),ingenic_aic_read_reg(aic, AICSR));
-	pr_info("AIC_I2SSR\t%p : 0x%08x\n",(ingenic_aic->vaddr_base+I2SSR),ingenic_aic_read_reg(aic, I2SSR));
-	pr_info("AIC_I2SDIV\t%p : 0x%08x\n",(ingenic_aic->vaddr_base+I2SDIV),ingenic_aic_read_reg(aic, I2SDIV));
-	pr_info("AIC_DR\t\t%p\n", (ingenic_aic->vaddr_base+AICDR));
+	pr_info("AIC_FR\t\t%p : 0x%08x\n", (ingenic_aic->vaddr_base + AICFR),
+		ingenic_aic_read_reg(aic, AICFR));
+	pr_info("AIC_CR\t\t%p : 0x%08x\n", (ingenic_aic->vaddr_base + AICCR),
+		ingenic_aic_read_reg(aic, AICCR));
+	pr_info("AIC_I2SCR\t%p : 0x%08x\n", (ingenic_aic->vaddr_base + I2SCR),
+		ingenic_aic_read_reg(aic, I2SCR));
+	pr_info("AIC_SR\t\t%p : 0x%08x\n", (ingenic_aic->vaddr_base + AICSR),
+		ingenic_aic_read_reg(aic, AICSR));
+	pr_info("AIC_I2SSR\t%p : 0x%08x\n", (ingenic_aic->vaddr_base + I2SSR),
+		ingenic_aic_read_reg(aic, I2SSR));
+	pr_info("AIC_I2SDIV\t%p : 0x%08x\n", (ingenic_aic->vaddr_base + I2SDIV),
+		ingenic_aic_read_reg(aic, I2SDIV));
+	pr_info("AIC_DR\t\t%p\n", (ingenic_aic->vaddr_base + AICDR));
 	return;
 }
 
@@ -75,11 +81,11 @@ static int ingenic_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 	I2S_DEBUG_MSG("enter %s dai fmt %x\n", __func__, fmt);
 
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_I2S:		/*i2s format*/
+	case SND_SOC_DAIFMT_I2S: /*i2s format*/
 		__i2s_select_i2s_fmt(aic);
 		break;
 	case SND_SOC_DAIFMT_MSB:
-		__i2s_select_msb_fmt(aic);	/*msb format*/
+		__i2s_select_msb_fmt(aic); /*msb format*/
 		break;
 	default:
 		return -EINVAL;
@@ -97,7 +103,7 @@ static int ingenic_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 	}
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBM_CFM:	/*sync and bit clk (codec master : i2s slave)*/
+	case SND_SOC_DAIFMT_CBM_CFM: /*sync and bit clk (codec master : i2s slave)*/
 		__i2s_bclk_input(aic);
 		__i2s_sync_input(aic);
 		break;
@@ -113,13 +119,13 @@ static int ingenic_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 }
 
 static int ingenic_set_sysclk(struct snd_soc_dai *dai, int clk_id,
-		unsigned int freq, int dir)
+			      unsigned int freq, int dir)
 {
 	struct ingenic_i2s *ingenic_i2s = dev_get_drvdata(dai->dev);
 	struct device *aic = ingenic_i2s->aic;
 
 	I2S_DEBUG_MSG("enter %s clk_id %d req %d clk dir %d\n", __func__,
-				  clk_id, freq, dir);
+		      clk_id, freq, dir);
 
 	if (clk_id == INGENIC_I2S_INNER_CODEC) {
 		__aic_select_internal_codec(aic);
@@ -129,12 +135,12 @@ static int ingenic_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 
 	aic_set_rate(aic, freq);
 
-    /* set the divider to a high value to avoid EMI issues 
+	/* set the divider to a high value to avoid EMI issues 
      * when hwparams has not been called yet
      */
 	__i2s_set_dv(aic, 255);
-        
-	if (dir  == SND_SOC_CLOCK_OUT)
+
+	if (dir == SND_SOC_CLOCK_OUT)
 		__i2s_select_sysclk_output(aic);
 	else
 		__i2s_select_sysclk_input(aic);
@@ -142,19 +148,23 @@ static int ingenic_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 }
 
 static int ingenic_i2s_startup(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai)
+			       struct snd_soc_dai *dai)
 {
 	struct ingenic_i2s *ingenic_i2s = dev_get_drvdata(dai->dev);
 	struct device *aic = ingenic_i2s->aic;
 	enum aic_mode work_mode = AIC_I2S_MODE;
 
 	I2S_DEBUG_MSG("enter %s, substream = %s\n", __func__,
-				  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	work_mode = aic_set_work_mode(aic, work_mode, true);
 	if (work_mode != AIC_I2S_MODE) {
-		dev_warn(ingenic_i2s->aic, "Aic now is working on %s mode, open i2s mode failed\n",
-				aic_work_mode_str(work_mode));
+		dev_warn(
+			ingenic_i2s->aic,
+			"Aic now is working on %s mode, open i2s mode failed\n",
+			aic_work_mode_str(work_mode));
 		return -EBUSY;
 	}
 
@@ -171,9 +181,9 @@ static int ingenic_i2s_startup(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-
 static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
+				 struct snd_pcm_hw_params *params,
+				 struct snd_soc_dai *dai)
 {
 	int channels = params_channels(params);
 	int fmt_width = snd_pcm_format_width(params_format(params));
@@ -186,7 +196,9 @@ static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
 	uint32_t div;
 
 	I2S_DEBUG_MSG("enter %s, substream = %s\n", __func__,
-				  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	/* format */
 	if (phys_width == 8)
@@ -206,23 +218,24 @@ static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
 		__i2s_channel(aic, ingenic_i2s->playback_channels);
 
 		if (channels == 1)
-			__i2s_m2s_enable(aic);	/*unavailed ??*/
+			__i2s_m2s_enable(aic); /*unavailed ??*/
 		else
 			__i2s_m2s_disable(aic);
 
 		ingenic_i2s->playback_dma_data.addr_width = buswidth;
-		ingenic_i2s->playback_dma_data.maxburst = I2S_TFIFO_DEPTH/2;
+		ingenic_i2s->playback_dma_data.maxburst = I2S_TFIFO_DEPTH / 2;
 
-		trigger = I2S_TFIFO_DEPTH - (ingenic_i2s->playback_dma_data.maxburst);
+		trigger = I2S_TFIFO_DEPTH -
+			  (ingenic_i2s->playback_dma_data.maxburst);
 		__i2s_set_oss(aic, fmt_width);
-		__i2s_set_transmit_trigger(aic, (trigger/2));
+		__i2s_set_transmit_trigger(aic, (trigger / 2));
 	} else {
 		ingenic_i2s->capture_dma_data.addr_width = buswidth;
-		ingenic_i2s->capture_dma_data.maxburst = I2S_TFIFO_DEPTH/2;
+		ingenic_i2s->capture_dma_data.maxburst = I2S_TFIFO_DEPTH / 2;
 
 		trigger = ingenic_i2s->capture_dma_data.maxburst;
 		__i2s_set_iss(aic, fmt_width);
-		__i2s_set_receive_trigger(aic, (trigger/2 - 1));
+		__i2s_set_receive_trigger(aic, (trigger / 2 - 1));
 	}
 
 	/* Set divider based on sample rate.
@@ -230,7 +243,8 @@ static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
 	 * See 6.2.6 AIC I2S/MSB-justified Clock Divider Register (I2SDIV)
 	 * BIT_CLK needs to be 64 x sample freq. We need to write the one less than
 	 * the divisor value here */
-	div = DIV_ROUND_CLOSEST(ingenic_aic->clk_rate, (params_rate(params) * 64));
+	div = DIV_ROUND_CLOSEST(ingenic_aic->clk_rate,
+				(params_rate(params) * 64));
 	div--;
 
 	/* We only have 9 bits for div. */
@@ -242,13 +256,15 @@ static int ingenic_i2s_hw_params(struct snd_pcm_substream *substream,
 }
 
 static void ingenic_i2s_start_substream(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai)
+					struct snd_soc_dai *dai)
 {
 	struct ingenic_i2s *ingenic_i2s = dev_get_drvdata(dai->dev);
 	struct device *aic = ingenic_i2s->aic;
 	int level, i, level_d, discard;
 	I2S_DEBUG_MSG("enter %s, substream = %s\n", __func__,
-				  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		unsigned filled_num;
@@ -257,8 +273,9 @@ static void ingenic_i2s_start_substream(struct snd_pcm_substream *substream,
 		if (level < TX_FIFO_LEVEL)
 			filled_num = TX_FIFO_LEVEL - level;
 		else
-			filled_num = level - (level % ingenic_i2s->playback_channels);
-		for (i= 0; i < filled_num; i++)
+			filled_num = level -
+				     (level % ingenic_i2s->playback_channels);
+		for (i = 0; i < filled_num; i++)
 			__aic_write_txfifo(aic, 0x0);
 
 		__aic_clear_tur(aic);
@@ -268,7 +285,8 @@ static void ingenic_i2s_start_substream(struct snd_pcm_substream *substream,
 		__i2s_enable_replay(aic);
 
 		I2S_DEBUG_MSG("aic dirty fifo size %d\n", level);
-		if (ingenic_i2s_debug) __aic_en_tur_int(aic);
+		if (ingenic_i2s_debug)
+			__aic_en_tur_int(aic);
 	} else {
 		level_d = level = __aic_read_rfl(aic);
 		__aic_clear_ror(aic);
@@ -290,20 +308,24 @@ static void ingenic_i2s_start_substream(struct snd_pcm_substream *substream,
 }
 
 static void ingenic_i2s_stop_substream(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai)
+				       struct snd_soc_dai *dai)
 {
 	struct ingenic_i2s *ingenic_i2s = dev_get_drvdata(dai->dev);
 	struct device *aic = ingenic_i2s->aic;
 	I2S_DEBUG_MSG("enter %s, substream = %s\n", __func__,
-				  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		if (ingenic_i2s_debug) __aic_dis_tur_int(aic);
+		if (ingenic_i2s_debug)
+			__aic_dis_tur_int(aic);
 		if (__i2s_transmit_dma_is_enable(aic))
 			__i2s_disable_transmit_dma(aic);
 		__i2s_disable_replay(aic);
 	} else {
-		if (ingenic_i2s_debug) __aic_dis_ror_int(aic);
+		if (ingenic_i2s_debug)
+			__aic_dis_ror_int(aic);
 		if (__i2s_receive_dma_is_enable(aic))
 			__i2s_disable_receive_dma(aic);
 		__i2s_disable_record(aic);
@@ -311,13 +333,16 @@ static void ingenic_i2s_stop_substream(struct snd_pcm_substream *substream,
 	return;
 }
 
-static int ingenic_i2s_trigger(struct snd_pcm_substream *substream, int cmd, struct snd_soc_dai *dai)
+static int ingenic_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
+			       struct snd_soc_dai *dai)
 {
 	struct ingenic_pcm_runtime_data *prtd = substream_to_prtd(substream);
 
-	I2S_DEBUG_MSG("enter %s, substream = %s cmd = %d\n",  __func__,
-				  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture",
-				  cmd);
+	I2S_DEBUG_MSG("enter %s, substream = %s cmd = %d\n", __func__,
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture",
+		      cmd);
 
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
@@ -341,13 +366,16 @@ static int ingenic_i2s_trigger(struct snd_pcm_substream *substream, int cmd, str
 }
 
 static void ingenic_i2s_shutdown(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai) {
+				 struct snd_soc_dai *dai)
+{
 	struct ingenic_i2s *ingenic_i2s = dev_get_drvdata(dai->dev);
 	struct device *aic = ingenic_i2s->aic;
 	enum aic_mode work_mode = AIC_I2S_MODE;
 
 	I2S_DEBUG_MSG("enter %s, substream = %s\n", __func__,
-				  (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	work_mode = aic_set_work_mode(ingenic_i2s->aic, work_mode, false);
 	BUG_ON((work_mode != AIC_NO_MODE));
@@ -375,7 +403,7 @@ static int ingenic_i2s_probe(struct snd_soc_dai *dai)
 	ingenic_i2s->capture_dma_data.fifo_size = I2S_RFIFO_DEPTH;
 
 	snd_soc_dai_init_dma_data(dai, &ingenic_i2s->playback_dma_data,
-			&ingenic_i2s->capture_dma_data);
+				  &ingenic_i2s->capture_dma_data);
 
 	/* inner codec(icdc) probe must have mclk*/
 	__i2s_select_sysclk_output(aic);
@@ -386,16 +414,16 @@ static int ingenic_i2s_probe(struct snd_soc_dai *dai)
 }
 
 static struct snd_soc_dai_ops ingenic_i2s_dai_ops = {
-	.startup	= ingenic_i2s_startup,
-	.trigger 	= ingenic_i2s_trigger,
-	.hw_params 	= ingenic_i2s_hw_params,
-	.shutdown	= ingenic_i2s_shutdown,
-	.set_fmt	= ingenic_set_dai_fmt,
-	.set_sysclk	= ingenic_set_sysclk,
+	.startup = ingenic_i2s_startup,
+	.trigger = ingenic_i2s_trigger,
+	.hw_params = ingenic_i2s_hw_params,
+	.shutdown = ingenic_i2s_shutdown,
+	.set_fmt = ingenic_set_dai_fmt,
+	.set_sysclk = ingenic_set_sysclk,
 };
 
 static ssize_t ingenic_i2s_regs_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+				     struct device_attribute *attr, char *buf)
 {
 	struct ingenic_i2s *ingenic_i2s = dev_get_drvdata(dev);
 	dump_registers(ingenic_i2s->aic);
@@ -413,20 +441,21 @@ static const struct attribute_group dump_attr_group = {
 };
 
 static const struct snd_soc_component_driver ingenic_i2s_component = {
-	.name		= "aic-i2s",
+	.name = "aic-i2s",
 };
 
-#define INGENIC_I2S_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_U8 | \
-		SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S16_BE | \
-		SNDRV_PCM_FMTBIT_U16_LE | SNDRV_PCM_FMTBIT_U16_BE | \
-		SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S24_BE | \
-		SNDRV_PCM_FMTBIT_U24_LE | SNDRV_PCM_FMTBIT_U24_BE | \
-		SNDRV_PCM_FMTBIT_S24_3LE | SNDRV_PCM_FMTBIT_U24_3LE | \
-		SNDRV_PCM_FMTBIT_S24_3BE | SNDRV_PCM_FMTBIT_U24_3BE | \
-		SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_U20_3LE | \
-		SNDRV_PCM_FMTBIT_S20_3BE | SNDRV_PCM_FMTBIT_U20_3BE | \
-		SNDRV_PCM_FMTBIT_S18_3LE | SNDRV_PCM_FMTBIT_U18_3LE | \
-		SNDRV_PCM_FMTBIT_S18_3BE | SNDRV_PCM_FMTBIT_U18_3BE )
+#define INGENIC_I2S_FORMATS                                                    \
+	(SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_U8 | SNDRV_PCM_FMTBIT_S16_LE | \
+	 SNDRV_PCM_FMTBIT_S16_BE | SNDRV_PCM_FMTBIT_U16_LE |                   \
+	 SNDRV_PCM_FMTBIT_U16_BE | SNDRV_PCM_FMTBIT_S24_LE |                   \
+	 SNDRV_PCM_FMTBIT_S24_BE | SNDRV_PCM_FMTBIT_U24_LE |                   \
+	 SNDRV_PCM_FMTBIT_U24_BE | SNDRV_PCM_FMTBIT_S24_3LE |                  \
+	 SNDRV_PCM_FMTBIT_U24_3LE | SNDRV_PCM_FMTBIT_S24_3BE |                 \
+	 SNDRV_PCM_FMTBIT_U24_3BE | SNDRV_PCM_FMTBIT_S20_3LE |                 \
+	 SNDRV_PCM_FMTBIT_U20_3LE | SNDRV_PCM_FMTBIT_S20_3BE |                 \
+	 SNDRV_PCM_FMTBIT_U20_3BE | SNDRV_PCM_FMTBIT_S18_3LE |                 \
+	 SNDRV_PCM_FMTBIT_U18_3LE | SNDRV_PCM_FMTBIT_S18_3BE |                 \
+	 SNDRV_PCM_FMTBIT_U18_3BE)
 
 static int ingenic_i2s_platfrom_probe(struct platform_device *pdev)
 {
@@ -438,7 +467,8 @@ static int ingenic_i2s_platfrom_probe(struct platform_device *pdev)
 	if (!parent)
 		return -ENOMEM;
 
-	ingenic_i2s = devm_kzalloc(&pdev->dev, sizeof(struct ingenic_i2s), GFP_KERNEL);
+	ingenic_i2s = devm_kzalloc(&pdev->dev, sizeof(struct ingenic_i2s),
+				   GFP_KERNEL);
 	if (!ingenic_i2s)
 		return -ENOMEM;
 
@@ -459,12 +489,13 @@ static int ingenic_i2s_platfrom_probe(struct platform_device *pdev)
 	ingenic_i2s->dai_driver.capture.channels_max = 2;
 	ingenic_i2s->dai_driver.capture.rates = SNDRV_PCM_RATE_8000_192000;
 	ingenic_i2s->dai_driver.capture.formats = INGENIC_I2S_FORMATS;
-	ingenic_i2s->playback_channels = 2;	/*default value*/
+	ingenic_i2s->playback_channels = 2; /*default value*/
 
 	platform_set_drvdata(pdev, (void *)ingenic_i2s);
 
-	ret = devm_snd_soc_register_component(&pdev->dev, &ingenic_i2s_component,
-			&ingenic_i2s->dai_driver, 1);
+	ret = devm_snd_soc_register_component(&pdev->dev,
+					      &ingenic_i2s_component,
+					      &ingenic_i2s->dai_driver, 1);
 	if (!ret)
 		dev_info(&pdev->dev, "i2s platform probe success\n");
 

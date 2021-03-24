@@ -30,13 +30,13 @@
 #include <sound/dmaengine_pcm.h>
 #include "asoc-aic.h"
 
-#define INGENIC_I2S_RATE (24*1000000)
+#define INGENIC_I2S_RATE (24 * 1000000)
 static const char *aic_no_mode = "no mode";
 static const char *aic_i2s_mode = "i2s mode";
 static const char *aic_spdif_mode = "spdif mode";
 static const char *aic_ac97_mode = "ac97 mode";
 
-const char* aic_work_mode_str(enum aic_mode mode)
+const char *aic_work_mode_str(enum aic_mode mode)
 {
 	switch (mode) {
 	default:
@@ -52,16 +52,15 @@ const char* aic_work_mode_str(enum aic_mode mode)
 }
 EXPORT_SYMBOL_GPL(aic_work_mode_str);
 
-enum aic_mode aic_set_work_mode(struct device *aic,
-		enum aic_mode module_mode, bool enable)
+enum aic_mode aic_set_work_mode(struct device *aic, enum aic_mode module_mode,
+				bool enable)
 {
 	struct ingenic_aic *ingenic_aic = dev_get_drvdata(aic);
 	enum aic_mode working_mode;
 
 	spin_lock(&ingenic_aic->mode_lock);
-	if  (module_mode != AIC_AC97_MODE &&
-			module_mode != AIC_I2S_MODE &&
-			module_mode != AIC_SPDIF_MODE)
+	if (module_mode != AIC_AC97_MODE && module_mode != AIC_I2S_MODE &&
+	    module_mode != AIC_SPDIF_MODE)
 		goto out;
 
 	if (enable && ingenic_aic->aic_working_mode == AIC_NO_MODE) {
@@ -100,25 +99,27 @@ static irqreturn_t ingenic_aic_irq_thread(int irq, void *dev_id)
 	if ((ingenic_aic->mask & 0x8) && __aic_test_ror(ingenic_aic->dev)) {
 		ingenic_aic->ror++;
 		dev_printk(KERN_DEBUG, ingenic_aic->dev,
-				"recieve fifo [overrun] interrupt time [%d]\n",
-				ingenic_aic->ror);
+			   "recieve fifo [overrun] interrupt time [%d]\n",
+			   ingenic_aic->ror);
 	}
 
 	if ((ingenic_aic->mask & 0x4) && __aic_test_tur(ingenic_aic->dev)) {
 		ingenic_aic->tur++;
 		dev_printk(KERN_DEBUG, ingenic_aic->dev,
-				"transmit fifo [underrun] interrupt time [%d]\n",
-				ingenic_aic->tur);
+			   "transmit fifo [underrun] interrupt time [%d]\n",
+			   ingenic_aic->tur);
 	}
 
 	if ((ingenic_aic->mask & 0x2) && __aic_test_rfs(ingenic_aic->dev)) {
-		dev_printk(KERN_DEBUG, ingenic_aic->dev,
-				"[recieve] fifo at or above threshold interrupt time\n");
+		dev_printk(
+			KERN_DEBUG, ingenic_aic->dev,
+			"[recieve] fifo at or above threshold interrupt time\n");
 	}
 
 	if ((ingenic_aic->mask & 0x1) && __aic_test_tfs(ingenic_aic->dev)) {
-		dev_printk(KERN_DEBUG, ingenic_aic->dev,
-				"[transmit] fifo at or blow threshold interrupt time\n");
+		dev_printk(
+			KERN_DEBUG, ingenic_aic->dev,
+			"[transmit] fifo at or blow threshold interrupt time\n");
 	}
 
 	/*sleep, avoid frequently interrupt*/
@@ -133,7 +134,8 @@ static irqreturn_t ingenic_aic_irq_handler(int irq, void *dev_id)
 	struct ingenic_aic *ingenic_aic = (struct ingenic_aic *)dev_id;
 
 	ingenic_aic->mask = __aic_get_irq_enmask(ingenic_aic->dev);
-	if (ingenic_aic->mask && (ingenic_aic->mask & __aic_get_irq_flag(ingenic_aic->dev))) {
+	if (ingenic_aic->mask &&
+	    (ingenic_aic->mask & __aic_get_irq_flag(ingenic_aic->dev))) {
 		/*Disable all aic interrupt*/
 		__aic_set_irq_enmask(ingenic_aic->dev, 0);
 		return IRQ_WAKE_THREAD;
@@ -141,7 +143,9 @@ static irqreturn_t ingenic_aic_irq_handler(int irq, void *dev_id)
 	return IRQ_NONE;
 }
 
-extern int ingenic_dma_pcm_register(struct device *dev,  const struct snd_dmaengine_pcm_config *config);
+extern int
+ingenic_dma_pcm_register(struct device *dev,
+			 const struct snd_dmaengine_pcm_config *config);
 extern void ingenic_dma_pcm_unregister(struct device *dev);
 
 static int ingenic_aic_probe(struct platform_device *pdev)
@@ -153,8 +157,10 @@ static int ingenic_aic_probe(struct platform_device *pdev)
 
 	nr_child = of_get_child_count(pdev->dev.of_node);
 
-	ingenic_aic = devm_kzalloc(&pdev->dev, sizeof(struct ingenic_aic) + nr_child * sizeof(void *),
-			GFP_KERNEL);
+	ingenic_aic = devm_kzalloc(&pdev->dev,
+				   sizeof(struct ingenic_aic) +
+					   nr_child * sizeof(void *),
+				   GFP_KERNEL);
 	if (!ingenic_aic)
 		return -ENOMEM;
 
@@ -183,8 +189,10 @@ static int ingenic_aic_probe(struct platform_device *pdev)
 	ingenic_aic->irqno = platform_get_irq(pdev, 0);
 	if (ingenic_aic->irqno >= 0)
 		ret = devm_request_threaded_irq(&pdev->dev, ingenic_aic->irqno,
-				ingenic_aic_irq_handler, ingenic_aic_irq_thread,
-				IRQF_SHARED , pdev->name, (void *)ingenic_aic);
+						ingenic_aic_irq_handler,
+						ingenic_aic_irq_thread,
+						IRQF_SHARED, pdev->name,
+						(void *)ingenic_aic);
 	if (!ret)
 		dev_info(&pdev->dev, "register aic irq\n");
 
@@ -193,8 +201,9 @@ static int ingenic_aic_probe(struct platform_device *pdev)
 	clk_prepare_enable(ingenic_aic->clk);
 	clk_prepare_enable(ingenic_aic->clk_gate);
 
-	for_each_child_of_node(pdev->dev.of_node, subdev_node)
-		ingenic_aic->psubdev[i++] = of_platform_device_create(subdev_node, NULL, &pdev->dev);
+	for_each_child_of_node (pdev->dev.of_node, subdev_node)
+		ingenic_aic->psubdev[i++] = of_platform_device_create(
+			subdev_node, NULL, &pdev->dev);
 
 	ret = ingenic_dma_pcm_register(&pdev->dev, NULL);
 	if (ret) {
@@ -212,7 +221,7 @@ static int ingenic_aic_probe(struct platform_device *pdev)
 
 static int ingenic_aic_remove(struct platform_device *pdev)
 {
-	struct ingenic_aic * ingenic_aic = platform_get_drvdata(pdev);
+	struct ingenic_aic *ingenic_aic = platform_get_drvdata(pdev);
 	int i;
 
 	ingenic_dma_pcm_unregister(&pdev->dev);
@@ -233,23 +242,21 @@ static int ingenic_aic_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 int ingenic_aic_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	struct ingenic_aic * ingenic_aic = platform_get_drvdata(pdev);
+	struct ingenic_aic *ingenic_aic = platform_get_drvdata(pdev);
 	clk_disable(ingenic_aic->clk_gate);
 	return 0;
 }
 
 int ingenic_aic_resume(struct platform_device *pdev)
 {
-	struct ingenic_aic * ingenic_aic = platform_get_drvdata(pdev);
+	struct ingenic_aic *ingenic_aic = platform_get_drvdata(pdev);
 	clk_enable(ingenic_aic->clk_gate);
 	return 0;
 }
 #endif
 
-static const struct dev_pm_ops aic_pm = {
-	SET_RUNTIME_PM_OPS(ingenic_aic_suspend, ingenic_aic_resume,
-			   NULL)
-};
+static const struct dev_pm_ops aic_pm = { SET_RUNTIME_PM_OPS(
+	ingenic_aic_suspend, ingenic_aic_resume, NULL) };
 
 static const struct of_device_id aic_dt_match[] = {
 	{ .compatible = "ingenic,aic", .data = NULL },

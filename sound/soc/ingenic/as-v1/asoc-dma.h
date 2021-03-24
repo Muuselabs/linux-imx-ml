@@ -19,13 +19,13 @@ struct ingenic_pcm_runtime_data {
 	struct file *file;
 	loff_t file_offset;
 	mm_segment_t old_fs;
-	char* file_name;
+	char *file_name;
 	struct work_struct debug_work;
 #endif
 };
 
-static inline struct ingenic_pcm_runtime_data *substream_to_prtd(
-	const struct snd_pcm_substream *substream)
+static inline struct ingenic_pcm_runtime_data *
+substream_to_prtd(const struct snd_pcm_substream *substream)
 {
 	return substream->runtime->private_data;
 }

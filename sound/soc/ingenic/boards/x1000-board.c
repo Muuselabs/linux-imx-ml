@@ -38,51 +38,61 @@ struct x1000_icdc {
 	int spk_gpio;
 	int spk_en_level;
 	bool headphones;
-    // HACK: this is only OK for accessing the codec and for playback-only
-    struct snd_pcm_substream *substream; 
+	// HACK: this is only OK for accessing the codec and for playback-only
+	struct snd_pcm_substream *substream;
 };
 
 /* this function controls the headphones output pads
  * based upon the headphones state
  */
-static void update_codec_output_state(struct x1000_icdc *x1000) {
-    struct snd_soc_component *component;
-    uint32_t mask, val;
+static void update_codec_output_state(struct x1000_icdc *x1000)
+{
+	struct snd_soc_component *component;
+	uint32_t mask, val;
 
-	for_each_card_components(&x1000->card, component) {
-      printk("==> %s\n", component->name);
+	for_each_card_components (&x1000->card, component) {
+		printk("==> %s\n", component->name);
 		if (!strcmp(component->name, "10020000.aic:inner-codec")) {
-			printk("%s headphone output pull-downs.\n", 
-                    (x1000->headphones ? "disabling" : "enabling"));
-            mask = SCODA_CR_DAC_ZERO_MASK | SCODA_CR_DAC_SMUTE_MASK | SCODA_CR_DAC_SB_MASK;
-            val = (x1000->headphones ? 0 : mask);
-            snd_soc_component_update_bits(component, SCODA_REG_CR_DAC , mask, val);
+			printk("%s headphone output pull-downs.\n",
+			       (x1000->headphones ? "disabling" : "enabling"));
+			mask = SCODA_CR_DAC_ZERO_MASK |
+			       SCODA_CR_DAC_SMUTE_MASK | SCODA_CR_DAC_SB_MASK;
+			val = (x1000->headphones ? 0 : mask);
+			snd_soc_component_update_bits(
+				component, SCODA_REG_CR_DAC, mask, val);
 			break;
 		}
 	}
-
 }
 
-int x1000_i2s_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params) {
+int x1000_i2s_hw_params(struct snd_pcm_substream *substream,
+			struct snd_pcm_hw_params *params)
+{
 	int ret;
 
-    struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct x1000_icdc *x1000 = dev_get_drvdata(rtd->card->dev);
-    
-    // we should not overwrite this
-    BUG_ON(x1000->substream != NULL);
-    x1000->substream = substream;
+
+	// we should not overwrite this
+	BUG_ON(x1000->substream != NULL);
+	x1000->substream = substream;
 
 	update_codec_output_state(x1000);
 
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
-			(x1000->headphones ? SND_SOC_DAIFMT_CBM_CFM : SND_SOC_DAIFMT_CBS_CFM));
+	ret = snd_soc_dai_set_fmt(
+		cpu_dai, SND_SOC_DAIFMT_I2S |
+				 (x1000->headphones ? SND_SOC_DAIFMT_CBM_CFM :
+						      SND_SOC_DAIFMT_CBS_CFM));
 	if (ret)
 		return ret;
 
-	ret = snd_soc_dai_set_sysclk(cpu_dai, x1000->headphones ? INGENIC_I2S_INNER_CODEC : INGENIC_I2S_EX_CODEC,
-			x1000->headphones ? 24000000 : 270640000, SND_SOC_CLOCK_IN);
+	ret = snd_soc_dai_set_sysclk(cpu_dai,
+				     x1000->headphones ?
+					     INGENIC_I2S_INNER_CODEC :
+					     INGENIC_I2S_EX_CODEC,
+				     x1000->headphones ? 24000000 : 270640000,
+				     SND_SOC_CLOCK_IN);
 	return ret;
 };
 
@@ -90,7 +100,7 @@ int x1000_i2s_hw_free(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct x1000_icdc *x1000 = dev_get_drvdata(rtd->card->dev);
-      
+
 	x1000->substream = NULL;
 
 	/*notify release pll*/
@@ -102,19 +112,23 @@ static struct snd_soc_ops x1000_i2s_cdc_ops = {
 	.hw_free = x1000_i2s_hw_free,
 };
 
-static int x1000_spk_power(struct snd_soc_dapm_widget *w, struct snd_kcontrol *kcontrol, int event)
+static int x1000_spk_power(struct snd_soc_dapm_widget *w,
+			   struct snd_kcontrol *kcontrol, int event)
 {
-	struct x1000_icdc *x1000 = container_of(w->dapm->card, struct x1000_icdc, card);
+	struct x1000_icdc *x1000 =
+		container_of(w->dapm->card, struct x1000_icdc, card);
 
 	if (!gpio_is_valid(x1000->spk_gpio))
 		return 0;
 
 	if (SND_SOC_DAPM_EVENT_ON(event)) {
 		gpio_direction_output(x1000->spk_gpio, x1000->spk_en_level);
-		printk("gpio speaker enable %d\n", gpio_get_value(x1000->spk_gpio));
+		printk("gpio speaker enable %d\n",
+		       gpio_get_value(x1000->spk_gpio));
 	} else {
 		gpio_direction_output(x1000->spk_gpio, x1000->spk_en_level);
-		printk("gpio speaker disable %d\n", gpio_get_value(x1000->spk_gpio));
+		printk("gpio speaker disable %d\n",
+		       gpio_get_value(x1000->spk_gpio));
 	}
 	return 0;
 }
@@ -137,16 +151,17 @@ static int x1000_i2s_cdc_dai_link_init(struct snd_soc_pcm_runtime *rtd)
 }
 
 static ssize_t headphones_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+			       struct device_attribute *attr, char *buf)
 {
 	struct x1000_icdc *x1000 = dev_get_drvdata(dev);
 
-	return snprintf(buf, PAGE_SIZE, x1000->headphones ? "headphones" : "speaker");
+	return snprintf(buf, PAGE_SIZE,
+			x1000->headphones ? "headphones" : "speaker");
 }
 
 static ssize_t headphones_store(struct device *dev,
-		struct device_attribute *attr, const char *buf,
-		size_t count)
+				struct device_attribute *attr, const char *buf,
+				size_t count)
 {
 	struct x1000_icdc *x1000 = dev_get_drvdata(dev);
 
@@ -158,10 +173,10 @@ static ssize_t headphones_store(struct device *dev,
 		return -EINVAL;
 	}
 
-    /* reconfigure the pull-downs on the outputs to avoid
+	/* reconfigure the pull-downs on the outputs to avoid
      * noise on the headphone output
      */
-    update_codec_output_state(x1000);
+	update_codec_output_state(x1000);
 
 	return count;
 }
@@ -171,18 +186,20 @@ static struct device_attribute x1000_i2s_sysfs_attr = __ATTR_RW(headphones);
 static int snd_x1000_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
-	struct device_node *cpu_np = NULL, *platform_np = NULL, *codec_np = NULL;
+	struct device_node *cpu_np = NULL, *platform_np = NULL,
+			   *codec_np = NULL;
 	struct platform_device *cpu_pdev;
 	struct x1000_icdc *x1000;
 	struct snd_soc_dai_link_component *comp;
 	int ret;
 	struct device *dev = &pdev->dev;
-    enum of_gpio_flags spk_gpio_flags;
+	enum of_gpio_flags spk_gpio_flags;
 
-    pr_info("snd_x1000_probe\n");
-    
+	pr_info("snd_x1000_probe\n");
+
 	cpu_np = of_parse_phandle(pdev->dev.of_node, "ingenic,cpu-dai", 0);
-	platform_np = of_parse_phandle(pdev->dev.of_node, "ingenic,platform", 0);
+	platform_np =
+		of_parse_phandle(pdev->dev.of_node, "ingenic,platform", 0);
 	codec_np = of_parse_phandle(pdev->dev.of_node, "ingenic,codec", 0);
 	if (!cpu_np || !platform_np || !codec_np) {
 		dev_err(dev, "phandle missing or invalid\n");
@@ -200,7 +217,7 @@ static int snd_x1000_probe(struct platform_device *pdev)
 	x1000 = devm_kzalloc(&pdev->dev, sizeof(*x1000), GFP_KERNEL);
 	if (!x1000)
 		return -ENOMEM;
-    
+
 	comp = devm_kzalloc(dev, 3 * sizeof(*comp), GFP_KERNEL);
 	if (!comp) {
 		ret = -ENOMEM;
@@ -209,25 +226,32 @@ static int snd_x1000_probe(struct platform_device *pdev)
 
 	x1000->dev = dev;
 
-    x1000->spk_gpio = of_get_named_gpio_flags(np, "ingenic,spken-gpio", 0, &spk_gpio_flags);
-    if (gpio_is_valid(x1000->spk_gpio)) {
+	x1000->spk_gpio = of_get_named_gpio_flags(np, "ingenic,spken-gpio", 0,
+						  &spk_gpio_flags);
+	if (gpio_is_valid(x1000->spk_gpio)) {
 		unsigned long init_flags;
-		x1000->spk_en_level = (spk_gpio_flags == OF_GPIO_ACTIVE_LOW ? 0 : 1);
-		init_flags = (spk_gpio_flags == OF_GPIO_ACTIVE_LOW ? GPIOF_OUT_INIT_HIGH : GPIOF_OUT_INIT_LOW);
-		ret = devm_gpio_request_one(x1000->dev, x1000->spk_gpio, init_flags, "speaker_en");
+		x1000->spk_en_level =
+			(spk_gpio_flags == OF_GPIO_ACTIVE_LOW ? 0 : 1);
+		init_flags = (spk_gpio_flags == OF_GPIO_ACTIVE_LOW ?
+				      GPIOF_OUT_INIT_HIGH :
+				      GPIOF_OUT_INIT_LOW);
+		ret = devm_gpio_request_one(x1000->dev, x1000->spk_gpio,
+					    init_flags, "speaker_en");
 		if (ret)
-			pr_warn("dorado speaker enable pin(%d) request failed\n", x1000->spk_gpio);
+			pr_warn("dorado speaker enable pin(%d) request failed\n",
+				x1000->spk_gpio);
 		else
-			pr_info("dorado speaker enable pin(%d) request ok\n", x1000->spk_gpio);
+			pr_info("dorado speaker enable pin(%d) request ok\n",
+				x1000->spk_gpio);
 	}
-	
-	x1000->dai.cpus		= &comp[0];
-	x1000->dai.codecs	= &comp[1];
-	x1000->dai.platforms	= &comp[2];
 
-	x1000->dai.num_cpus	= 1;
-	x1000->dai.num_codecs	= 1;
-	x1000->dai.num_platforms	= 1;
+	x1000->dai.cpus = &comp[0];
+	x1000->dai.codecs = &comp[1];
+	x1000->dai.platforms = &comp[2];
+
+	x1000->dai.num_cpus = 1;
+	x1000->dai.num_codecs = 1;
+	x1000->dai.num_platforms = 1;
 
 	x1000->dai.name = "ingenic-hifi";
 	x1000->dai.stream_name = "ingenic-hifi-stream";
@@ -235,13 +259,13 @@ static int snd_x1000_probe(struct platform_device *pdev)
 	x1000->dai.codecs->of_node = codec_np;
 	x1000->dai.cpus->of_node = cpu_np;
 	x1000->dai.platforms->of_node = platform_np;
-    
-    /* for i2s only */
+
+	/* for i2s only */
 	x1000->dai.init = &x1000_i2s_cdc_dai_link_init;
-    x1000->dai.ops = &x1000_i2s_cdc_ops;
+	x1000->dai.ops = &x1000_i2s_cdc_ops;
 	x1000->dai.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
-			    SND_SOC_DAIFMT_CBS_CFM;
-                
+			     SND_SOC_DAIFMT_CBS_CFM;
+
 	x1000->card.dev = dev;
 	x1000->card.num_dapm_widgets = ARRAY_SIZE(x1000_dapm_widgets);
 	x1000->card.dapm_widgets = x1000_dapm_widgets;
@@ -250,7 +274,8 @@ static int snd_x1000_probe(struct platform_device *pdev)
 		dev_err(dev, "Unable to parse card name\n");
 		goto fail;
 	}
-	ret = snd_soc_of_parse_audio_routing(&x1000->card, "ingenic,audio-routing");
+	ret = snd_soc_of_parse_audio_routing(&x1000->card,
+					     "ingenic,audio-routing");
 	if (ret) {
 		dev_err(dev, "Unable to parse routing: %d\n", ret);
 		goto fail;
@@ -259,7 +284,6 @@ static int snd_x1000_probe(struct platform_device *pdev)
 	x1000->card.owner = THIS_MODULE;
 	x1000->card.dai_link = &x1000->dai;
 
-    
 #if 0
 	struct device_node *snd_node = pdev->dev.of_node;
 	struct x1000_icdc *x1000;
@@ -347,8 +371,6 @@ static int snd_x1000_probe(struct platform_device *pdev)
 	}
 #endif
 
-
-
 	ret = snd_soc_register_card(&x1000->card);
 	if (ret) {
 		dev_err(dev, "snd_soc_register_card failed %d\n", ret);
@@ -366,7 +388,7 @@ static int snd_x1000_probe(struct platform_device *pdev)
 fail:
 	of_node_put(cpu_np);
 	of_node_put(platform_np);
-	of_node_put(codec_np);    
+	of_node_put(codec_np);
 
 	return ret;
 }

@@ -70,8 +70,9 @@ static int dump_platform_probe(struct platform_device *pdev)
 	const struct of_device_id *match;
 	int ret = 0;
 
-	dump_dai = (struct snd_soc_dai_driver *)devm_kzalloc(&pdev->dev,
-			sizeof(struct snd_soc_component_driver), GFP_KERNEL);
+	dump_dai = (struct snd_soc_dai_driver *)devm_kzalloc(
+		&pdev->dev, sizeof(struct snd_soc_component_driver),
+		GFP_KERNEL);
 	if (!dump_dai)
 		return -ENOMEM;
 	match = of_match_node(dump_dt_match, pdev->dev.of_node);
@@ -79,17 +80,19 @@ static int dump_platform_probe(struct platform_device *pdev)
 		return -ENODEV;
 	memcpy(dump_dai, match->data, sizeof(struct snd_soc_component_driver));
 
-	dump_component = (struct snd_soc_component_driver *)devm_kzalloc(&pdev->dev,
-			sizeof(struct snd_soc_component_driver), GFP_KERNEL);
+	dump_component = (struct snd_soc_component_driver *)devm_kzalloc(
+		&pdev->dev, sizeof(struct snd_soc_component_driver),
+		GFP_KERNEL);
 	if (!dump_component)
 		return -ENOMEM;
 
-	ret = devm_snd_soc_register_component(&pdev->dev, dump_component, dump_dai, 1);
-    if(ret) {
-        dev_err(&pdev->dev, "codec dump codec platfrom probe failed\n");
-        return ret;
-    }
-    
+	ret = devm_snd_soc_register_component(&pdev->dev, dump_component,
+					      dump_dai, 1);
+	if (ret) {
+		dev_err(&pdev->dev, "codec dump codec platfrom probe failed\n");
+		return ret;
+	}
+
 	dev_dbg(&pdev->dev, "codec dump codec platfrom probe success\n");
 	return 0;
 }
@@ -100,9 +103,9 @@ static int dump_platform_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id dump_dt_match[] = {
-	{ .compatible = "ingenic,pcm-dump-codec", .data = &pcm_dump_dai},
-	{ .compatible = "ingenic,spdif-dump-codec", .data = &spdif_dump_dai},
-	{ .compatible = "ingenic,dmic-dump-codec", .data = &dmic_dump_dai},
+	{ .compatible = "ingenic,pcm-dump-codec", .data = &pcm_dump_dai },
+	{ .compatible = "ingenic,spdif-dump-codec", .data = &spdif_dump_dai },
+	{ .compatible = "ingenic,dmic-dump-codec", .data = &dmic_dump_dai },
 	{},
 };
 MODULE_DEVICE_TABLE(of, dump_dt_match);

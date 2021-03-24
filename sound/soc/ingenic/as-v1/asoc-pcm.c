@@ -28,36 +28,42 @@
 
 static int ingenic_pcm_debug = 0;
 module_param(ingenic_pcm_debug, int, 0644);
-#define PCM_DEBUG_MSG(msg...)			\
-	do {					\
-		if (ingenic_pcm_debug)		\
-			printk(KERN_DEBUG"PCM: " msg);	\
-	} while(0)
+#define PCM_DEBUG_MSG(msg...)                                                  \
+	do {                                                                   \
+		if (ingenic_pcm_debug)                                         \
+			printk(KERN_DEBUG "PCM: " msg);                        \
+	} while (0)
 
 #define PCM_RFIFO_DEPTH 16
 #define PCM_TFIFO_DEPTH 16
-#define INGENIC_PCM_FORMATS (SNDRV_PCM_FMTBIT_S8 |  SNDRV_PCM_FMTBIT_S16_LE)
+#define INGENIC_PCM_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE)
 
 static void dump_registers(struct device *dev)
 {
 	struct ingenic_pcm *ingenic_pcm = dev_get_drvdata(dev);
-	pr_info("PCMCTL  %p : 0x%08x\n", (ingenic_pcm->vaddr_base+PCMCTL),pcm_read_reg(dev, PCMCTL));
-	pr_info("PCMCFG  %p : 0x%08x\n", (ingenic_pcm->vaddr_base+PCMCFG),pcm_read_reg(dev, PCMCFG));
-	pr_info("PCMINTC %p : 0x%08x\n", (ingenic_pcm->vaddr_base+PCMINTC),pcm_read_reg(dev,PCMINTC));
-	pr_info("PCMINTS %p : 0x%08x\n",(ingenic_pcm->vaddr_base+PCMINTS),pcm_read_reg(dev, PCMINTS));
-	pr_info("PCMDIV  %p : 0x%08x\n",(ingenic_pcm->vaddr_base+PCMDIV),pcm_read_reg(dev, PCMDIV));
+	pr_info("PCMCTL  %p : 0x%08x\n", (ingenic_pcm->vaddr_base + PCMCTL),
+		pcm_read_reg(dev, PCMCTL));
+	pr_info("PCMCFG  %p : 0x%08x\n", (ingenic_pcm->vaddr_base + PCMCFG),
+		pcm_read_reg(dev, PCMCFG));
+	pr_info("PCMINTC %p : 0x%08x\n", (ingenic_pcm->vaddr_base + PCMINTC),
+		pcm_read_reg(dev, PCMINTC));
+	pr_info("PCMINTS %p : 0x%08x\n", (ingenic_pcm->vaddr_base + PCMINTS),
+		pcm_read_reg(dev, PCMINTS));
+	pr_info("PCMDIV  %p : 0x%08x\n", (ingenic_pcm->vaddr_base + PCMDIV),
+		pcm_read_reg(dev, PCMDIV));
 	return;
 }
 
 static int ingenic_pcm_startup(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai)
+			       struct snd_soc_dai *dai)
 {
 	struct device *dev = dai->dev;
 	struct ingenic_pcm *ingenic_pcm = dev_get_drvdata(dai->dev);
 
-	PCM_DEBUG_MSG("enter %s, substream = %s\n",
-			__func__,
-			(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+	PCM_DEBUG_MSG("enter %s, substream = %s\n", __func__,
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	if (!ingenic_pcm->pcm_mode) {
 		clk_prepare_enable(ingenic_pcm->clk_gate);
@@ -67,7 +73,7 @@ static int ingenic_pcm_startup(struct snd_pcm_substream *substream,
 		clk_set_rate(ingenic_pcm->clk, 9600000);
 		clk_prepare_enable(ingenic_pcm->clk);
 		__pcm_as_master(dev);
-		__pcm_set_clkdiv(dev, 9600000/20/8000 - 1);
+		__pcm_set_clkdiv(dev, 9600000 / 20 / 8000 - 1);
 		__pcm_set_syndiv(dev, 20 - 1);
 #endif
 		__pcm_set_msb_one_shift_in(dev);
@@ -77,8 +83,7 @@ static int ingenic_pcm_startup(struct snd_pcm_substream *substream,
 		__pcm_clock_enable(dev);
 	}
 
-	if (substream->stream ==
-			SNDRV_PCM_STREAM_PLAYBACK) {
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		__pcm_disable_transmit_dma(dev);
 		__pcm_disable_replay(dev);
 		__pcm_clear_tur(dev);
@@ -94,7 +99,8 @@ static int ingenic_pcm_startup(struct snd_pcm_substream *substream,
 }
 
 static int ingenic_pcm_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
+				 struct snd_pcm_hw_params *params,
+				 struct snd_soc_dai *dai)
 {
 	struct device *dev = dai->dev;
 	struct ingenic_pcm *ingenic_pcm = dev_get_drvdata(dai->dev);
@@ -102,14 +108,15 @@ static int ingenic_pcm_hw_params(struct snd_pcm_substream *substream,
 	enum dma_slave_buswidth buswidth;
 	int trigger;
 
-	PCM_DEBUG_MSG("enter %s, substream = %s\n",
-			__func__,
-			(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+	PCM_DEBUG_MSG("enter %s, substream = %s\n", __func__,
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	if (!((1 << params_format(params)) & INGENIC_PCM_FORMATS) ||
-			params_channels(params) != 1) {
+	    params_channels(params) != 1) {
 		dev_err(dai->dev, "hw params not inval channel %d params %x\n",
-				params_channels(params), params_format(params));
+			params_channels(params), params_format(params));
 		return -EINVAL;
 	}
 
@@ -121,29 +128,33 @@ static int ingenic_pcm_hw_params(struct snd_pcm_substream *substream,
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		ingenic_pcm->tx_dma_data.addr_width = buswidth;
-		ingenic_pcm->tx_dma_data.maxburst = (PCM_TFIFO_DEPTH * buswidth)/2;
-		trigger = PCM_TFIFO_DEPTH - (ingenic_pcm->tx_dma_data.maxburst/(int)buswidth);
+		ingenic_pcm->tx_dma_data.maxburst =
+			(PCM_TFIFO_DEPTH * buswidth) / 2;
+		trigger = PCM_TFIFO_DEPTH -
+			  (ingenic_pcm->tx_dma_data.maxburst / (int)buswidth);
 		__pcm_set_oss_sample_size(dev, fmt_width == 8 ? 0 : 1);
 		__pcm_set_transmit_trigger(dev, trigger);
-//		snd_soc_dai_set_dma_data(dai, substream, (void *)&ingenic_pcm->tx_dma_data);
+		//		snd_soc_dai_set_dma_data(dai, substream, (void *)&ingenic_pcm->tx_dma_data);
 	} else {
 		ingenic_pcm->rx_dma_data.addr_width = buswidth;
-		ingenic_pcm->rx_dma_data.maxburst = (PCM_RFIFO_DEPTH * buswidth)/2;
-		trigger = ingenic_pcm->rx_dma_data.maxburst/(int)buswidth;
+		ingenic_pcm->rx_dma_data.maxburst =
+			(PCM_RFIFO_DEPTH * buswidth) / 2;
+		trigger = ingenic_pcm->rx_dma_data.maxburst / (int)buswidth;
 		__pcm_set_iss_sample_size(dev, fmt_width == 8 ? 0 : 1);
 		__pcm_set_receive_trigger(dev, trigger);
-//		snd_soc_dai_set_dma_data(dai, substream, (void *)&ingenic_pcm->rx_dma_data);
+		//		snd_soc_dai_set_dma_data(dai, substream, (void *)&ingenic_pcm->rx_dma_data);
 	}
 	return 0;
 }
 
 static void ingenic_pcm_start_substream(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai)
+					struct snd_soc_dai *dai)
 {
 	struct device *dev = dai->dev;
-	PCM_DEBUG_MSG("enter %s, substream = %s\n",
-			__func__,
-			(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+	PCM_DEBUG_MSG("enter %s, substream = %s\n", __func__,
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		__pcm_enable_transmit_dma(dev);
@@ -156,13 +167,14 @@ static void ingenic_pcm_start_substream(struct snd_pcm_substream *substream,
 }
 
 static void ingenic_pcm_stop_substream(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai)
+				       struct snd_soc_dai *dai)
 {
 	struct device *dev = dai->dev;
 	int timeout = 150000;
-	PCM_DEBUG_MSG("enter %s, substream = %s\n",
-			__func__,
-			(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+	PCM_DEBUG_MSG("enter %s, substream = %s\n", __func__,
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		if (__pcm_transmit_dma_is_enable(dev)) {
@@ -173,8 +185,8 @@ static void ingenic_pcm_stop_substream(struct snd_pcm_substream *substream,
 			 * Harzard:
 			 *	In pcm slave mode, the clk maybe stop before here, we will dead here
 			 */
-			while((!__pcm_test_tur(dev)) && (timeout--)){
-				if(timeout == 0){
+			while ((!__pcm_test_tur(dev)) && (timeout--)) {
+				if (timeout == 0) {
 					printk("wait tansmit fifo under run error\n");
 					return;
 				}
@@ -186,8 +198,8 @@ static void ingenic_pcm_stop_substream(struct snd_pcm_substream *substream,
 		if (__pcm_receive_dma_is_enable(dev)) {
 			__pcm_disable_receive_dma(dev);
 			__pcm_clear_ror(dev);
-			while(!__pcm_test_ror(dev) && timeout--){
-				if(timeout == 0){
+			while (!__pcm_test_ror(dev) && timeout--) {
+				if (timeout == 0) {
 					printk("wait tansmit fifo under run error\n");
 					return;
 				}
@@ -199,12 +211,15 @@ static void ingenic_pcm_stop_substream(struct snd_pcm_substream *substream,
 	return;
 }
 
-static int ingenic_pcm_trigger(struct snd_pcm_substream *substream, int cmd, struct snd_soc_dai *dai)
+static int ingenic_pcm_trigger(struct snd_pcm_substream *substream, int cmd,
+			       struct snd_soc_dai *dai)
 {
-	struct ingenic_pcm_runtime_data *prtd = substream->runtime->private_data;
-	PCM_DEBUG_MSG("enter %s, substream = %s cmd = %d\n",
-		      __func__,
-		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture",
+	struct ingenic_pcm_runtime_data *prtd =
+		substream->runtime->private_data;
+	PCM_DEBUG_MSG("enter %s, substream = %s cmd = %d\n", __func__,
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture",
 		      cmd);
 
 	switch (cmd) {
@@ -213,7 +228,7 @@ static int ingenic_pcm_trigger(struct snd_pcm_substream *substream, int cmd, str
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 		if (atomic_read(&prtd->wait_stopdma))
 			return -EPIPE;
-		printk(KERN_DEBUG"pcm start\n");
+		printk(KERN_DEBUG "pcm start\n");
 		ingenic_pcm_start_substream(substream, dai);
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
@@ -221,7 +236,7 @@ static int ingenic_pcm_trigger(struct snd_pcm_substream *substream, int cmd, str
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		if (atomic_read(&prtd->wait_stopdma))
 			return 0;
-		printk(KERN_DEBUG"pcm stop\n");
+		printk(KERN_DEBUG "pcm stop\n");
 		ingenic_pcm_stop_substream(substream, dai);
 		break;
 	}
@@ -229,13 +244,15 @@ static int ingenic_pcm_trigger(struct snd_pcm_substream *substream, int cmd, str
 }
 
 static void ingenic_pcm_shutdown(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai) {
+				 struct snd_soc_dai *dai)
+{
 	struct ingenic_pcm *ingenic_pcm = dev_get_drvdata(dai->dev);
 	struct device *dev = dai->dev;
 
-	PCM_DEBUG_MSG("enter %s, substream = %s\n",
-			__func__,
-			(substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture");
+	PCM_DEBUG_MSG("enter %s, substream = %s\n", __func__,
+		      (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ?
+			      "playback" :
+			      "capture");
 	ingenic_pcm_stop_substream(substream, dai);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -256,20 +273,20 @@ static int ingenic_pcm_probe(struct snd_soc_dai *dai)
 	struct ingenic_pcm *ingenic_pcm = dev_get_drvdata(dai->dev);
 	ingenic_pcm->rx_dma_data.fifo_size = PCM_RFIFO_DEPTH;
 	ingenic_pcm->tx_dma_data.fifo_size = PCM_TFIFO_DEPTH;
-	snd_soc_dai_init_dma_data(dai, &ingenic_pcm->tx_dma_data, &ingenic_pcm->rx_dma_data);
+	snd_soc_dai_init_dma_data(dai, &ingenic_pcm->tx_dma_data,
+				  &ingenic_pcm->rx_dma_data);
 	return 0;
 }
 
-
 static struct snd_soc_dai_ops ingenic_pcm_dai_ops = {
-	.startup	= ingenic_pcm_startup,
-	.trigger 	= ingenic_pcm_trigger,
-	.hw_params 	= ingenic_pcm_hw_params,
-	.shutdown	= ingenic_pcm_shutdown,
+	.startup = ingenic_pcm_startup,
+	.trigger = ingenic_pcm_trigger,
+	.hw_params = ingenic_pcm_hw_params,
+	.shutdown = ingenic_pcm_shutdown,
 };
 
 static ssize_t ingenic_pcm_regs_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+				     struct device_attribute *attr, char *buf)
 {
 	struct ingenic_pcm *ingenic_pcm = dev_get_drvdata(dev);
 	dump_registers(ingenic_pcm->dev);
@@ -297,10 +314,12 @@ static struct snd_soc_dai_driver ingenic_pcm_dai = {
 		.ops = &ingenic_pcm_dai_ops,
 };
 static const struct snd_soc_component_driver ingenic_pcm_component = {
-	.name		= "ingenic-pcm",
+	.name = "ingenic-pcm",
 };
 
-extern int ingenic_dma_pcm_register(struct device *dev,  const struct snd_dmaengine_pcm_config *config);
+extern int
+ingenic_dma_pcm_register(struct device *dev,
+			 const struct snd_dmaengine_pcm_config *config);
 extern void ingenic_dma_pcm_unregister(struct device *dev);
 static int ingenic_pcm_platfrom_probe(struct platform_device *pdev)
 {
@@ -308,7 +327,8 @@ static int ingenic_pcm_platfrom_probe(struct platform_device *pdev)
 	struct resource *res = NULL;
 	int i = 0, ret;
 
-	ingenic_pcm = devm_kzalloc(&pdev->dev, sizeof(struct ingenic_pcm), GFP_KERNEL);
+	ingenic_pcm = devm_kzalloc(&pdev->dev, sizeof(struct ingenic_pcm),
+				   GFP_KERNEL);
 	if (!ingenic_pcm)
 		return -ENOMEM;
 
@@ -316,15 +336,14 @@ static int ingenic_pcm_platfrom_probe(struct platform_device *pdev)
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res)
 		return -ENOENT;
-	if (!devm_request_mem_region(&pdev->dev,
-				res->start, resource_size(res),
-				pdev->name))
+	if (!devm_request_mem_region(&pdev->dev, res->start, resource_size(res),
+				     pdev->name))
 		return -EBUSY;
 
 	ingenic_pcm->res_start = res->start;
 	ingenic_pcm->res_size = resource_size(res);
-	ingenic_pcm->vaddr_base = devm_ioremap(&pdev->dev,
-			ingenic_pcm->res_start, ingenic_pcm->res_size);
+	ingenic_pcm->vaddr_base = devm_ioremap(
+		&pdev->dev, ingenic_pcm->res_start, ingenic_pcm->res_size);
 	if (!ingenic_pcm->vaddr_base) {
 		dev_err(&pdev->dev, "Failed to ioremap mmio memory\n");
 		return -ENOMEM;
@@ -346,14 +365,17 @@ static int ingenic_pcm_platfrom_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, (void *)ingenic_pcm);
 
 	ingenic_pcm->pcm_mode = 0;
-	ingenic_pcm->tx_dma_data.addr = (dma_addr_t)ingenic_pcm->res_start + PCMDP;
-	ingenic_pcm->rx_dma_data.addr = (dma_addr_t)ingenic_pcm->res_start + PCMDP;
+	ingenic_pcm->tx_dma_data.addr =
+		(dma_addr_t)ingenic_pcm->res_start + PCMDP;
+	ingenic_pcm->rx_dma_data.addr =
+		(dma_addr_t)ingenic_pcm->res_start + PCMDP;
 	platform_set_drvdata(pdev, (void *)ingenic_pcm);
 
 	for (; i < ARRAY_SIZE(ingenic_pcm_sysfs_attrs); i++) {
-		ret = device_create_file(&pdev->dev, &ingenic_pcm_sysfs_attrs[i]);
+		ret = device_create_file(&pdev->dev,
+					 &ingenic_pcm_sysfs_attrs[i]);
 		if (ret)
-			dev_warn(&pdev->dev,"attribute create failed\n");
+			dev_warn(&pdev->dev, "attribute create failed\n");
 	}
 
 	ret = snd_soc_register_component(&pdev->dev, &ingenic_pcm_component,
@@ -393,7 +415,9 @@ static int ingenic_pcm_platfom_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id pcm_dt_match[] = {
-	{.compatible = "ingenic,pcm",},
+	{
+		.compatible = "ingenic,pcm",
+	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, pcm_dt_match);
