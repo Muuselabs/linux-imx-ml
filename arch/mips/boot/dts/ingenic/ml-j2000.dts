@@ -20,7 +20,7 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x0 0x04000000>;
+		reg = <0x0 0x02000000>;
 	};
 
 	sound_halley2_icdc {
@@ -57,10 +57,24 @@
 &i2c0 {
 	status = "okay";
 
-	clock-frequency = <400000>;
+	clock-frequency = <100000>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_i2c0>;
+};
+
+&i2c2 {
+	status = "okay";
+
+	clock-frequency = <100000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_i2c2>;
+
+    pmic: j2000_ht@0A {
+		compatible = "muuselabs,j2000-ht";
+		reg = <0x0A>;
+	};
 };
 
 &uart0 {
@@ -77,25 +91,20 @@
 	pinctrl-0 = <&pins_uart2>;
 };
 
-&ssi {
-	status = "okay";
-
-	spi-max-frequency = <50000000>;
-
-	pinctrl-names = "default";
-	pinctrl-0 = <&pins_ssi>;
-};
-
 &otg {
 	status = "okay";
 	dr_mode = "peripheral";
+
+	/* to fix issues with the g_audio gadget*/
+	g-np-tx-fifo-size = <384>;
+	g-tx-fifo-size = <384 256 256 256 256 256 256 512>;
 };
 
 &msc0 {
 	status = "okay";
 
 	bus-width = <4>;
-	max-frequency = <50000000>;
+	max-frequency = <19000000>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_msc0>;
@@ -107,12 +116,13 @@
 	status = "okay";
 
 	bus-width = <4>;
-	max-frequency = <500000>;
+	max-frequency = <11320760>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_msc1>;
 
-    non-removable;
+    /* non-removable; */
+    broken-cd;
    /* cd-gpios = <&gpc 17 GPIO_ACTIVE_HIGH>; */
 };
 
@@ -125,7 +135,13 @@
 	pins_i2c0: i2c0 {
 		function = "i2c0";
 		groups = "i2c0-data";
-		bias-disable;
+		bias-pull-up;
+	};
+
+	pins_i2c2: i2c2 {
+		function = "i2c2";
+		groups = "i2c2-data";
+		bias-pull-up;
 	};
 
 	pins_uart0: uart0 {
@@ -140,22 +156,10 @@
 		bias-disable;
 	};
 
-	pins_ssi: ssi {
-		function = "ssi";
-		groups = "ssi-dt-d", "ssi-dr-d", "ssi-clk-d", "ssi-ce0-d";
-		bias-disable;
-	};
-
-	pins_mac: mac {
-		function = "mac";
-		groups = "mac";
-		bias-disable;
-	};
-
 	pins_msc0: msc0 {
 		function = "mmc0";
 		groups = "mmc0-1bit", "mmc0-4bit", "mmc0-8bit";
-		bias-disable;
+		bias-pull-up;
 	};
 
 	pins_msc1: msc1 {
@@ -168,5 +172,37 @@
 		function = "i2s";
 		groups = "i2s";
 		bias-disable;
+	};
+};
+
+/* Keys control */
+/ {
+	keys {
+		compatible = "gpio-keys";
+
+		/* PCB before MSB */
+		int_old {
+			label = "INT_OLD";
+			gpios = <&gpc 24 GPIO_ACTIVE_LOW>;
+			linux,code = <152>;
+		};
+		/* needs patch on board */
+        btn_old {
+			label = "BTN_OLD";
+			gpios = <&gpa 30 GPIO_ACTIVE_LOW>;
+			linux,code = <207>;
+		};
+
+		/* PCB from MSB on */
+		int {
+			label = "INT";
+			gpios = <&gpb 28 GPIO_ACTIVE_LOW>;
+			linux,code = <152>;
+		};
+		btn {
+			label = "BTN";
+			gpios = <&gpb 31 GPIO_ACTIVE_LOW>;
+			linux,code = <207>;
+		};
 	};
 };
