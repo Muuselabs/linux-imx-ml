@@ -8,9 +8,13 @@ set -eu
 cd "$(dirname "$0")"
 
 # Install the modules in the root file-system.
+echo "installing modules"
 tar xzf lib.tgz -C /
 
-dd if=/tmp/to_jooki/uImage of=/dev/mmcblk0p1 bs=1024
+echo "installing kernel"
+cp uImage /boot/uImage
+
+/sbin/depmod -a
 
 sync
 
