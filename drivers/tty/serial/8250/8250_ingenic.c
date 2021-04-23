@@ -204,6 +204,39 @@ static unsigned int ingenic_uart_serial_in(struct uart_port *p, int offset)
 	return value;
 }
 
+#define UART_UMR 0x24 // base+0x24
+/*
+ * Ingenic UART has a secondary method of setting divisors that can be used
+ * to implement support for higher baud rates.
+ * The UART input clock (usually 24MHz) can be used either:
+ * - using the 8250 standard method by enabling UART_LCR and writing a divisor
+ *   (=> serial8250_do_set_divisor)
+ * - bypassing the standard method and specifing a divider directly in the
+ *   UMR register. This allows to set the length of a symbol as 'M' clock cycles
+ *   Behavior can be further improved by using the UACR register to tune the
+ *   length of individual bits. (not implemented)
+ *   The divider in UMR can be max 31, so for any larger dividers the standard
+ *   method needs to be used.
+ */
+static void ingenic_uart_set_divisor(struct uart_port *p, unsigned int baud,
+				 unsigned int quot, unsigned int quot_frac)
+{
+	unsigned int div = DIV_ROUND_CLOSEST(p->uartclk, baud);
+
+	/* the alternative method only works up to a divide by 31 */
+	if(div > 31) {
+		/* for the standard method to work, UART_UMR needs to be set to DIV 16 */
+		writeb(0x10, p->membase + UART_UMR);
+		serial8250_do_set_divisor(p, baud, quot, quot_frac);
+	} else {
+		/* when going over the standard frequency range, 
+		 * the UART divider should be set to 1 */
+		serial8250_do_set_divisor(p, baud, 1, 0);
+		writeb(div, p->membase + UART_UMR);
+	}
+}
+
+
 static int ingenic_uart_probe(struct platform_device *pdev)
 {
 	struct uart_8250_port uart = {};
@@ -238,6 +271,7 @@ static int ingenic_uart_probe(struct platform_device *pdev)
 	uart.port.regshift = 2;
 	uart.port.serial_out = ingenic_uart_serial_out;
 	uart.port.serial_in = ingenic_uart_serial_in;
+	uart.port.set_divisor = ingenic_uart_set_divisor;
 	uart.port.irq = irq->start;
 	uart.port.dev = &pdev->dev;
 	uart.port.fifosize = cdata->fifosize;
