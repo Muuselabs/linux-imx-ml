@@ -859,14 +859,20 @@ static int jz4740_mmc_set_clock_rate(struct jz4740_mmc_host *host, int rate)
 
 	real_rate = clk_get_rate(host->clk);
 
+#if 0
+	/* the X1000 documentation indicates that the CLKRT divider
+	 * should not be used
+	 */
 	while (real_rate > rate && div < 7) {
 		++div;
 		real_rate >>= 1;
 	}
 
 	writew(div, host->base + JZ_REG_MMC_CLKRT);
+#endif
 
 	if (real_rate > 25000000) {
+		dev_info(mmc_dev(host->mmc), "using high-speed timing settings");
 		if (host->version >= JZ_MMC_X1000) {
 			writel(JZ_MMC_LPM_DRV_RISING_QTR_PHASE_DLY |
 				   JZ_MMC_LPM_SMP_RISING_QTR_OR_HALF_PHASE_DLY |
