@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+
+INSTALLER='target_install.sh'
+
+TMP_FS=/tmp/to_jooki
+
+IMAGE_TGT=uImage

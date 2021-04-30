@@ -5,9 +5,8 @@ set -eu
 # Make paths relative to this script.
 cd "$(dirname "$0")"
 
-INSTALLER='target_install.sh'
+source options.rc
 
-TMP_FS=/tmp/to_jooki
 rm -rf $TMP_FS || true
 mkdir $TMP_FS
 
@@ -22,10 +21,9 @@ cd ../..
 
 set -e
 set +u
-source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux || source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux-musl
+source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux 2> /dev/null \
+  || source $YOCTO_SDK_DIR/environment-setup-mips32r2el-poky-linux-musl
 set -u
-
-IMAGE_TGT=uImage
 
 make -j4 all ${IMAGE_TGT} ${DTB}
 make -j4 modules || true
@@ -35,8 +33,4 @@ cp ./arch/$ARCH/boot/dts/${DTB} $TMP_FS/
 cp ./arch/$ARCH/boot/${IMAGE_TGT} $TMP_FS/
 
 make ARCH=$ARCH modules_install INSTALL_MOD_PATH=$TMP_FS
-( cd $TMP_FS && tar czf lib.tgz lib/ && rm -r lib/ )
 
-printf "\nCopy these files to Jooki and run $INSTALLER\n"
-
-du -hs $TMP_FS/*
