@@ -432,7 +432,7 @@ static void jz4740_mmc_request_done(struct jz4740_mmc_host *host)
 static unsigned int jz4740_mmc_poll_irq(struct jz4740_mmc_host *host,
 	unsigned int irq)
 {
-	unsigned int timeout = 0x800;
+	unsigned int timeout = 8;
 	uint32_t status;
 
 	do {
