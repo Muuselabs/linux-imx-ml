@@ -855,23 +855,38 @@ static int jz4740_mmc_set_clock_rate(struct jz4740_mmc_host *host, int rate)
 	int real_rate;
 
 	jz4740_mmc_clock_disable(host);
-	clk_set_rate(host->clk, host->mmc->f_max);
 
-	real_rate = clk_get_rate(host->clk);
-
-#if 0
-	/* the X1000 documentation indicates that the CLKRT divider
-	 * should not be used
+	/*
+	 * About the internal clock divider, the programming manual says:
+	 * > This field must be set to 0 when the controller works during
+	 * > normal writing or reading.
+	 *
+	 * It is not entirely clear what "normal" actually means. We suppose
+	 * it is OK to use the divider only during the ID phase, then it
+	 * should be avoided.
 	 */
-	while (real_rate > rate && div < 7) {
-		++div;
-		real_rate >>= 1;
+
+	if (rate < 2000000) {
+		/* Input at 24Mhz */
+		clk_set_rate(host->clk, 24000000);
+		real_rate = clk_get_rate(host->clk);
+
+		while (real_rate > rate && div < 7) {
+			++div;
+			real_rate >>= 1;
+		}
+	} else {
+		clk_set_rate(host->clk, rate);
+		real_rate = clk_get_rate(host->clk);
 	}
 
 	writew(div, host->base + JZ_REG_MMC_CLKRT);
-#endif
 
-	if (real_rate > 25000000) {
+	if (rate > 25000000) {
+		/*
+		 * We should probably use the timing information instead of the clock.
+		 * While the vendor seems to do something similar, this is suspect
+		 */
 		dev_info(mmc_dev(host->mmc), "using high-speed timing settings");
 		if (host->version >= JZ_MMC_X1000) {
 			writel(JZ_MMC_LPM_DRV_RISING_QTR_PHASE_DLY |
@@ -885,6 +900,10 @@ static int jz4740_mmc_set_clock_rate(struct jz4740_mmc_host *host, int rate)
 		} else if (host->version >= JZ_MMC_JZ4725B)
 			writel(JZ_MMC_LPM_LOW_POWER_MODE_EN,
 				   host->base + JZ_REG_MMC_LPM);
+	} else {
+		/* Care to reset ??? */
+		if (host->version >= JZ_MMC_JZ4725B)
+			writel(0, host->base + JZ_REG_MMC_LPM);
 	}
 
 	return real_rate;
