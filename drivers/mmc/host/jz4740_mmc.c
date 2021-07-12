@@ -1059,7 +1059,13 @@ static int jz4740_mmc_probe(struct platform_device* pdev)
 
 	mmc->max_blk_size = (1 << 10) - 1;
 	mmc->max_blk_count = (1 << 15) - 1;
-	mmc->max_req_size = mmc->max_blk_size * mmc->max_blk_count;
+
+	/* HACK:
+	 * this is a very small system - let's limit the allocation of the mmc
+	 * 32MB is our whole RAM so it is a bit too much
+	 */
+	mmc->max_req_size = min_t(unsigned int, mmc->max_blk_size * mmc->max_blk_count,
+				  64 * PAGE_SIZE);
 
 	mmc->max_segs = 128;
 	mmc->max_seg_size = mmc->max_req_size;
