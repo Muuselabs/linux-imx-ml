@@ -93,7 +93,7 @@
 
 &otg {
 	status = "okay";
-	dr_mode = "peripheral";
+	dr_mode = "otg";
 
 	/* to fix issues with the g_audio gadget*/
 	g-np-tx-fifo-size = <384>;
@@ -104,7 +104,7 @@
 	status = "okay";
 
 	bus-width = <4>;
-	max-frequency = <19000000>;
+	max-frequency = <50000000>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_msc0>;
@@ -116,7 +116,7 @@
 	status = "okay";
 
 	bus-width = <4>;
-	max-frequency = <11320760>;
+	max-frequency = <24000000>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_msc1>;
@@ -125,12 +125,12 @@
     broken-cd;
    /* cd-gpios = <&gpc 17 GPIO_ACTIVE_HIGH>; */
 };
-
+/*
 &aic {
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2s_pins>;
 };
-
+*/
 &pinctrl {
 	pins_i2c0: i2c0 {
 		function = "i2c0";
@@ -181,11 +181,6 @@
 		compatible = "gpio-keys";
 
 		/* PCB before MSB */
-		int_old {
-			label = "INT_OLD";
-			gpios = <&gpc 24 GPIO_ACTIVE_LOW>;
-			linux,code = <152>;
-		};
 		/* needs patch on board */
         btn_old {
 			label = "BTN_OLD";
@@ -194,11 +189,6 @@
 		};
 
 		/* PCB from MSB on */
-		int {
-			label = "INT";
-			gpios = <&gpb 28 GPIO_ACTIVE_LOW>;
-			linux,code = <152>;
-		};
 		btn {
 			label = "BTN";
 			gpios = <&gpb 31 GPIO_ACTIVE_LOW>;
