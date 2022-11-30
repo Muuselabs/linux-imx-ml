@@ -13,6 +13,7 @@ tar xzf lib.tgz -C /
 
 echo "installing kernel"
 cp uImage /boot/uImage
+cp -f uImage /mnt/config/uImage-new
 
 /sbin/depmod -a
 
