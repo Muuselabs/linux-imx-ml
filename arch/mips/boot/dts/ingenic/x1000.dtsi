@@ -334,7 +334,7 @@
 	};
 
 	msc0: mmc@13450000 {
-		compatible = "ingenic,x1000-mmc";
+		compatible = "ingenic,x1000-mmc-dma";
 		reg = <0x13450000 0x1000>;
 
 		interrupt-parent = <&intc>;
@@ -355,7 +355,7 @@
 	};
 
 	msc1: mmc@13460000 {
-		compatible = "ingenic,x1000-mmc";
+		compatible = "ingenic,x1000-mmc-dma";
 		reg = <0x13460000 0x1000>;
 
 		interrupt-parent = <&intc>;
