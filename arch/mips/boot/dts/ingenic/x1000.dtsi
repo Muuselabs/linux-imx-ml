@@ -278,8 +278,8 @@
 
 		clocks = <&cgu X1000_CLK_PDMA>;
 
-		/* reserve the first 4 channels for high-priority */
-		ingenic,reserved-channels = <0x0f>;
+		/* reserve the first 6 channels for high-priority */
+		ingenic,reserved-channels = <0x3f>;
 	};
 
 	otg_phy: otg_phy@10000000 {
@@ -347,8 +347,8 @@
 		cap-mmc-highspeed;
 		cap-sdio-irq;
 
-		dmas = <&pdma X1000_DMA_MSC0_RX 0xffffffff>,
-			   <&pdma X1000_DMA_MSC0_TX 0xffffffff>;
+		dmas = <&pdma X1000_DMA_MSC0_RX 0>,
+			   <&pdma X1000_DMA_MSC0_TX 4>;
 		dma-names = "rx", "tx";
 
 		status = "disabled";
@@ -368,8 +368,8 @@
 		cap-mmc-highspeed;
 		cap-sdio-irq;
 
-		dmas = <&pdma X1000_DMA_MSC1_RX 0xffffffff>,
-			   <&pdma X1000_DMA_MSC1_TX 0xffffffff>;
+		dmas = <&pdma X1000_DMA_MSC1_RX 1>,
+			   <&pdma X1000_DMA_MSC1_TX 2>;
 		dma-names = "rx", "tx";
 
 		status = "disabled";
@@ -382,8 +382,8 @@
         interrupt-parent = <&intc>;
         interrupts = <1>;
         
-        dmas = <&pdma X1000_DMA_I2S0_TX 0>,
-               <&pdma X1000_DMA_I2S0_RX 1>;
+        dmas = <&pdma X1000_DMA_I2S0_TX 3>,
+               <&pdma X1000_DMA_I2S0_RX 5>;
         dma-names = "tx", "rx";
         i2s: i2s {
             compatible = "ingenic,i2s";
