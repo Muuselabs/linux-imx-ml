@@ -853,6 +853,16 @@ config MMC_JZ4740
 	  If you have a board based on such a SoC and with a SD/MMC slot,
 	  say Y or M here.
 
+config MMC_X1000_DMA
+	tristate "Ingenic X1000(e) SD/Multimedia Card Interface support [DMA]"
+	depends on MACH_X1000
+	help
+	  This selects support for the SD/MMC controller on Ingenic
+	  X1000(e) SoCs in DMA-only mode.
+
+	  If you have a board based on such a SoC and with a SD/MMC slot,
+	  say Y or M here.
+
 config MMC_VUB300
 	tristate "VUB300 USB to SDIO/SD/MMC Host Controller support"
 	depends on USB
