@@ -16,6 +16,7 @@
 #include <linux/rtc.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
+#include <linux/delay.h>
 
 #define JZ_REG_RTC_CTRL		0x00
 #define JZ_REG_RTC_SEC		0x04
@@ -36,6 +37,7 @@
 #define JZ_RTC_CTRL_AF		BIT(4)
 #define JZ_RTC_CTRL_AF_IRQ	BIT(3)
 #define JZ_RTC_CTRL_AE		BIT(2)
+#define JZ_RTC_CTRL_EXTCLK 	BIT(1)
 #define JZ_RTC_CTRL_ENABLE	BIT(0)
 
 /* Magic value to enable writes on jz4780 */
@@ -297,6 +299,77 @@ static void jz4740_rtc_power_off(void)
 	kernel_halt();
 }
 
+#define CCM_OPCR_REG 	0x24
+#define CCM_CLKGR_REG 	0x20
+#define CCM_OPCR_ERCS 	BIT(2)
+#define CCM_CLKGR_RTC 	BIT(27)
+#define CCM_BASE_ADDR	0x10000000
+#define CCM_BASE_LEN	0x30
+/* see X1000 PM 2012/10/18
+	 *
+	 * p409:
+	 * There is an exception, when system does NOT have RTC 32Khz crystal.
+	 * MUST write 1 to RTCCR.SELEXC before write to any value to any other
+	 * registers.
+	 *
+	 * p413:
+	 * There is no 32KHz crystal connected but only 24Mhz EXCLK crystal connected,
+	 * so RTCLK input path has no clock.
+	 * In this case, should flow the sequence below to change internal clock:
+	 * a) Set OPCR.ERCS of CPM to 1; close EXCLK/512 to RTC.
+	 * b) Set CLKGR.RTC of CPM to 0; open PCLK to RTC.
+	 * c) Set RTCCR.SELEXC to 1; change internal clock to EXCLK/512.
+	 * d) Wait two clock period of clock.
+	 * e) Clear OPCR.ERCS of CPM to 0; open EXCLK/512 to RTC.
+	 * f) Configure all RTC registers but RTCCR.SELEXC.
+	 * g) Check RTCCR.SELEXC == 1.
+	 * h) IF YES, finish this sequence; IF NO, do step (a) again.
+	 */
+static int jz4740_rtc_switch_to_ext_clk(struct jz4740_rtc *rtc)
+{
+	int retries = 10;
+	uint32_t reg = 0;
+
+	void __iomem *ccm_base = ioremap(CCM_BASE_ADDR, CCM_BASE_LEN);
+	if (!ccm_base) {
+		return -EIO;
+	}
+
+	do {
+		reg = readl(ccm_base + CCM_OPCR_REG);
+		reg |= CCM_OPCR_ERCS;
+		writel(reg, ccm_base + CCM_OPCR_REG);
+
+		reg = readl(ccm_base + CCM_CLKGR_REG);
+		reg &= ~CCM_CLKGR_RTC;
+		writel(reg, ccm_base + CCM_CLKGR_REG);
+
+		reg = readl(rtc->base);
+		writel(reg | JZ_RTC_CTRL_EXTCLK, rtc->base);
+
+		// 2 clock cycles at 32kHz = 63us, so a range between
+		// looks reasonable 100us and 1ms
+		usleep_range(100, 1000);
+
+		reg = readl(ccm_base + CCM_OPCR_REG);
+		reg &= ~CCM_OPCR_ERCS;
+		writel(reg, ccm_base + CCM_OPCR_REG);
+
+		// try to do a write enable
+		writel(JZ_RTC_WENR_MAGIC, rtc->base + JZ_REG_RTC_WENR);
+
+		reg = readl(rtc->base);
+		printk(KERN_ERR "xxxx[%2d] %08X %08X %08X", retries, reg,
+		       readl(ccm_base + CCM_OPCR_REG),
+		       readl(ccm_base + CCM_CLKGR_REG));
+
+		// g & h
+	} while (!(reg & JZ_RTC_CTRL_EXTCLK) && retries--);
+	iounmap(ccm_base);
+
+	return retries ? 0 : -EIO;
+}
+
 static const struct of_device_id jz4740_rtc_of_match[] = {
 	{ .compatible = "ingenic,jz4740-rtc", .data = (void *)ID_JZ4740 },
 	{ .compatible = "ingenic,jz4760-rtc", .data = (void *)ID_JZ4760 },
@@ -330,6 +403,15 @@ static int jz4740_rtc_probe(struct platform_device *pdev)
 	rtc->base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(rtc->base))
 		return PTR_ERR(rtc->base);
+
+	/* FIXME: make this dependent on a device tree parameter and/or integrate into
+	 *        the clock framework.
+	 */
+	ret = jz4740_rtc_switch_to_ext_clk(rtc);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to switch to internal clock: %d\n", ret);
+		return ret;
+	}
 
 	rtc->clk = devm_clk_get(&pdev->dev, "rtc");
 	if (IS_ERR(rtc->clk)) {
